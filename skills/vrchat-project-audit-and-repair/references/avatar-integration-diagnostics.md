@@ -34,6 +34,13 @@ Use this reference to route from an observed VRChat avatar symptom to its true r
 - Respect body-preservation requests—do not silently shrink/mask the body when asked to fit the garment. Remove both mesh/shape rules and activating FX/MA rules if a body-shrink attempt is rejected.
 - Verify region selection, measured clearance, preserved UVs/weights, and multi-pose renders (arm down, forward, raised, bent).
 
+## Correct Export, Stale Texture Or Glow In Unity
+
+1. Record the visible renderer, active state, submesh, slot, shader, and exact color, overlay, emission and outline property paths. Include scene overrides, shader keywords, texture tiling/offset, material property blocks and second or outline renderers where present.
+2. Compare the active sample against the accepted PNG at the target landmarks. Check importer metadata and data channels as well as decoded pixels. A removed iris can still draw through another emission map. Isolate shader layers one at a time on a temporary clone or material copy with a fixed camera and light.
+3. Sample the expected clip, then evaluate the attached Animator through default, the discrepant state and return. Read actual renderer materials and texture references at each point. If direct clip sampling works but the driven state shows another texture, check competing object-reference curves, clip overrides and layer weights. If an editor harness reaches a state but never applies its object references, repeat with the attached Animator before changing the art.
+4. Escalate to the resolved NDMF avatar when the renderer, installer or atlas packer changes the result during processing. Trace the rewritten renderer binding, final material and remapped texture. Keep asset repair or layered painting scoped to an explicitly requested follow-up.
+
 ## Missing Reference Warning In A Build Component
 
 - Inspect the component's active mode before declaring a failure. For instance, a `ModularAvatarMenuItem` set to generate its submenu from child GameObjects may retain an obsolete serialized `Sub Menu` asset slot that is not the active data source.

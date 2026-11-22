@@ -60,7 +60,7 @@ flowchart LR
 ```text
 vrchat-avatar-modding-skills/
 ├── skills/
-│   ├── vrchat-avatar-modding/            # 核心改模主流程 + 11 篇专题参考 + 7 个 C#/Python 工具
+│   ├── vrchat-avatar-modding/            # 核心改模主流程 + 10 篇专题参考 + 7 个 C#/Python 工具
 │   ├── vrchat-project-audit-and-repair/  # 只读三层审计 + 症状分流 + 安全修复校验
 │   └── vrchat-clothing-rebuild/          # Blender 贴合重建脚本 + Unity 一次性回灌器 + 无头 MCP 启动器
 ├── unity-mcp/                            # 随包提供的 AnkleBreaker Unity MCP 插件 (2.32.0) 与服务端 (2.30.0)
@@ -153,11 +153,9 @@ $wheel = Join-Path $toolkit 'blender-mcp/mcp_for_blender-2.3.1-py3-none-any.whl'
 
 ---
 
-## 用 AI 编辑 UV 贴图
+## 画图与 UV 贴图统一工作流：有 PSD 优先改 PSD，无 PSD 再改 PNG
 
-虹膜重绘、分束挑染和刺绣纹样用 GPT Image 局部编辑；色阶映射、胸牌透明文字和图集底色清理用 Pillow。手册提供 API、宿主生图和纯提示词三种用法。出图后按原图遮罩合成、回读校验 Alpha，再到 Unity 检查材质和换装效果。[UV 贴图工作流](skills/vrchat-avatar-modding/references/ai-texture-generation.md)
-
-透明徽章文字可用原尺寸 RGBA 图层和 `composite --decal` 合成。用 `compare --require-visible-change` 检出只改了透明像素的候选图。手册补充了眼睛、发丝、发饰和服装在编辑器中的实测案例。
+只要工程或原包里有与当前贴图 UV 对齐的 `.psd`，一律优先在版本化 PSD 副本上用图层和蒙版做局部修改（完整保留原作者分组、剪贴蒙版、混合模式、线稿与阴影**不合并压平**，方便后续随时用 Photoshop 继续微调）；需要 GPT Image 绘制新虹膜、挑染或刺绣时，把生成的局部候选对位贴回独立 PSD 图层并挂上蒙版后导出；仅在没有 PSD、只有扁平 PNG 图集时，直接用 `vrc_texture_tool.py`（`recolor` 色阶映射、`clean-bg` 去底噪、`composite` 遮罩回贴、`composite --decal` 透明徽章文字、`compare --require-visible-change --check-color-metadata` 像素与 ICC 色彩元数据校验），最后在 Unity 用角色挂载的 Animator 实测所有材质切换状态。详见统一手册：[PSD 优先与 AI 辅助 UV 贴图工作流](skills/vrchat-avatar-modding/references/psd-texture-workflow.md)。
 
 ## 首次使用指令示例
 

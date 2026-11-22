@@ -23,7 +23,7 @@ Load only what the current investigation needs:
 
 - [references/unity-reference-audit.md](references/unity-reference-audit.md): GUID/fileID indexing, avatar reference graphs, and finding classification (`Confirmed Failure` vs. `Suspicious` vs. `Not A Failure`).
 - [references/unity-editor-inspection.md](references/unity-editor-inspection.md): Live Unity MCP read-only queries and the two-pass `-batchmode` C# inspector skeleton (`VrcProjectInspector`).
-- [references/avatar-integration-diagnostics.md](references/avatar-integration-diagnostics.md): Symptom triage for disappearing AFK hair, brightness mismatches, clipping/oversized cuffs, floating outfits (rest-pose pollution), pink-ball build failures, ambiguous missing-reference warnings, and shared-accessory breaks.
+- [references/avatar-integration-diagnostics.md](references/avatar-integration-diagnostics.md): Symptom triage for stale textures or glow, disappearing AFK hair, brightness mismatches, clipping/oversized cuffs, floating outfits, build failures, ambiguous missing references, and shared-accessory breaks.
 - [references/cleanup-validation.md](references/cleanup-validation.md): Asset ownership rules, safe removal of generated candidates, and final repair validation checklists.
 
 ## 1. Establish The Project Baseline

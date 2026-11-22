@@ -1,13 +1,8 @@
 # Local Fit, Textures, Lighting, And Isolated Validation
 
-## Texture Recolors, Decals, And Precise Offsets
+## Texture Editing And Precise Position Offsets
 
-For mask preparation, prompt templates, deterministic compositing and candidate promotion, see [AI texture generation](ai-texture-generation.md).
-
-- For eye, face, hair, or clothing recolors, resolve the exact material slot and active texture map (or follow `.mat` -> `.meta` GUID offline). Distinguish original PNG/PSD sources, current work textures, emission masks, and effect overlays.
-- Preserve UV alignment and untouched atlas islands—especially facial expressions, alternate pupils, and asymmetrical heterochromia eyes. Save new textures/materials inside the current work version and verify that both the renderer and any material-swap animations point to them.
-- **Adding text, badges, or decals onto UV textures**: Verify the target UV island's orientation and horizontal mirroring first, paint onto a **transparent background** layer (avoid opaque backing boxes unless intended), and inspect the result under the avatar's actual shader and lighting in Unity to catch unintended white blocks, seam bleeding, or inverted text.
-- **Iterating on AI-generated UV textures**: Inspect imported dimensions, alpha/background transparency, UV island edges, and close-up 3D renders before accepting a candidate. If an edit shifts UV alignment or introduces artifacts, keep it as a preview and preserve the previous accepted texture.
+- **Textures, PSDs, decals, and UV recolors**: Always follow the unified [PSD-first & AI-assisted UV texture workflow](psd-texture-workflow.md) (edit a versioned layered PSD preserving author groups/masks whenever a registered PSD exists; fall back to Pillow or GPT Image + masked composite only when working from a flattened PNG).
 - **Precise position offsets**: Record original and current values separately. Unity world up is `+Y`, while Inspector `localPosition` is in the parent's coordinate frame. Distinguish absolute offset from original vs. incremental delta from current, and convert units explicitly (in meter-scale Unity scenes, `0.005` = 5 mm). For skinned accessories, moving only the renderer Transform may not move visible geometry—locate a dedicated weighted bone chain or adjust the cloned work mesh instead, verifying no shared bone weights are affected.
 
 ## Local Fit Without Silently Shrinking The Body

@@ -19,8 +19,8 @@ Load only the references relevant to the user's request before editing:
 | Multi-outfit wardrobes, shared accessories, mesh splitting, skin rebinding | [references/wardrobe-and-shared-accessories.md](references/wardrobe-and-shared-accessories.md) |
 | Replacement hair/parts disappearing or floating during AFK or actions | [references/afk-and-replacement-parts.md](references/afk-and-replacement-parts.md) |
 | Hand props, grip alignment, contacts, constraints, multi-gimmick coexistence | [references/props-and-gimmicks.md](references/props-and-gimmicks.md) |
-| Local fit, UV recolor/decals, lighting/probe mismatch, offscreen checks | [references/fit-lighting-and-validation.md](references/fit-lighting-and-validation.md) |
-| GPT Image atlas edits, heterochromia, hair streaks, embroidery, badge masks and candidate review | [references/ai-texture-generation.md](references/ai-texture-generation.md) |
+| Local fit, precise coordinate offsets, lighting/probe mismatch, offscreen checks | [references/fit-lighting-and-validation.md](references/fit-lighting-and-validation.md) |
+| PSD-first layered texture editing, Pillow masked recolor/decals, GPT Image UV atlas generation, and Unity material acceptance | [references/psd-texture-workflow.md](references/psd-texture-workflow.md) |
 | SDK height warnings vs build pose leakage, AAO/BlendShapes, particles, mipmaps, WD | [references/avatar-height-and-performance.md](references/avatar-height-and-performance.md) |
 | Work versions, checkpoints, `SaveAssetIfDirty`, NDMF re-entrancy guard, backups | [references/versioned-work-and-rollback.md](references/versioned-work-and-rollback.md) |
 | Independent Blueprint IDs, SDK build/upload triage, thumbnails, offline CLI tools | [references/publishing-and-offline-tools.md](references/publishing-and-offline-tools.md) |
@@ -32,7 +32,7 @@ Load only the references relevant to the user's request before editing:
 - [scripts/VrcMaterialSwap.cs](scripts/VrcMaterialSwap.cs): Safe work-folder-only texture/color swap helper using `AssetDatabase.SaveAssetIfDirty`.
 - [scripts/vrc_project_audit.py](scripts/vrc_project_audit.py): Offline CLI to detect shared Blueprint IDs across scenes/prefabs and audit synced expression parameter bit budgets.
 - [scripts/vrc_build_log.py](scripts/vrc_build_log.py): Offline CLI to summarize Unity/VRChat SDK errors from `Editor.log` without dumping raw logs.
-- [scripts/vrc_texture_tool.py](scripts/vrc_texture_tool.py): Offline Pillow CLI for masked recolor, candidate compositing, original-background cleanup, and pixel integrity checks.
+- [scripts/vrc_texture_tool.py](scripts/vrc_texture_tool.py): Offline Pillow CLI for masked recolor, candidate compositing, gutter cleanup, and pixel and PNG color metadata checks.
 - [scripts/vrc_gpt_texture_edit.py](scripts/vrc_gpt_texture_edit.py): Optional standard-library Images API client for original-atlas edits and offline dry runs.
 
 ## Fast Operating Loop
@@ -49,6 +49,7 @@ Follow this loop unless the user only requested read-only research or review (us
 
 ## Core Safety Rules
 
+- **Use the matching layered source**: For texture edits, trace the active renderer slot through relevant states and verify the PSD against its current export. Keep a versioned PSD copy and use editable layers and masks for local changes.
 - **Work from verified facts**: Never infer toggle polarity, bone bindings, or shader properties from names alone; read animation curves, FX conditions, bone weights, and resolved components.
 - **Keep vendor assets intact**: Never edit or delete original vendor prefabs, FBX files, textures, controllers, or packages unless explicitly instructed.
 - **Adapted vs. unadapted clothing**: Treat a clothing package as adapted only when its target avatar, armature, and proportions actually match. Do not silently shrink or delete the body when the user asked to fit the garment. For major torso/silhouette rebuilds, switch to `vrchat-clothing-rebuild`.

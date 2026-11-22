@@ -60,7 +60,7 @@ flowchart LR
 ```text
 vrchat-avatar-modding-skills/
 ├── skills/
-│   ├── vrchat-avatar-modding/            # 改変メインフロー + リファレンス 11 本 + C#/Python スクリプト 7 本
+│   ├── vrchat-avatar-modding/            # 改変メインフロー + リファレンス 10 本 + C#/Python スクリプト 7 本
 │   ├── vrchat-project-audit-and-repair/  # 読み取り専用監査 + 症状診断 + 安全修復チェックリスト
 │   └── vrchat-clothing-rebuild/          # Blender リビルドパイプライン + Unity 反映器 + ヘッドレス起動器
 ├── unity-mcp/                            # 同梱 AnkleBreaker Unity MCP プラグイン (2.32.0) ＆ サーバー (2.30.0)
@@ -153,11 +153,9 @@ $wheel = Join-Path $toolkit 'blender-mcp/mcp_for_blender-2.3.1-py3-none-any.whl'
 
 ---
 
-## AI を使った UV テクスチャ編集
+## テクスチャ編集統合ワークフロー：PSD 優先・PNG & AI フォールバック
 
-虹彩、髪のハイライト、刺繍の描き直しには GPT Image の部分編集を使います。階調変換、名札への透過文字の合成、UV アイランド間の余白の修復には Pillow を使います。API、ホスト内蔵の画像編集、プロンプトのみの各手順を収録しています。元画像のマスクで合成し、アルファ値を検証してから Unity で表示と着せ替えを確認します。[UV テクスチャ編集ガイド](skills/vrchat-avatar-modding/references/ai-texture-generation.md)
-
-名札の透過文字には元画像と同じサイズの RGBA レイヤーと `composite --decal` を使います。`compare --require-visible-change` で透明画素だけが変わった候補を検出できます。ガイドには目、髪、髪飾り、衣装をエディターで確認した事例もあります。
+Unity 上で実際に使われているテクスチャと一致する `.psd` がある場合は、必ずバージョン分けした PSD コピー上でレイヤーとマスクを使って部分編集します（作者のレイヤーグループ・クリッピングマスク・描画モード・線画・影を**統合せず保持**し、後から Photoshop 等でいつでも再編集できるようにします）。新しい虹彩・ハイライト・刺繍などを GPT Image で生成する場合も、生成した候補を PSD の独立したマスク付きレイヤーに配置して書き出します。PSD が無く統合済み PNG のみの場合に限り、`vrc_texture_tool.py`（`recolor`、`clean-bg`、`composite`、`composite --decal`、`compare --require-visible-change --check-color-metadata`）で直接処理し、Unity 上でアバター本体の Animator を動かして全マテリアル切り替えを検証します。詳細は統合ガイド [PSD 優先 ＆ AI 補助 UV テクスチャワークフロー](skills/vrchat-avatar-modding/references/psd-texture-workflow.md) を参照してください。
 
 ## 最初のプロンプト例
 

@@ -39,17 +39,8 @@ python -X utf8 scripts/vrc_project_audit.py budget 'E:/Project/Assets/Parameters
 python -X utf8 scripts/vrc_build_log.py "$env:LOCALAPPDATA/Unity/Editor/Editor.log" --tail 8000
 ```
 
-```powershell
-# Recolor UV islands inside a grayscale mask (black = preserve, white = ramp, gray = blend)
-python -X utf8 scripts/vrc_texture_tool.py recolor Original.png TintMask.png Variant.png --shadow '#223447' --midtone '#75ADD6' --highlight '#E3F8FF'
-
-# Prove zero alpha drift and zero edits outside the grayscale mask
-python -X utf8 scripts/vrc_texture_tool.py compare Original.png Variant.png --mask TintMask.png
-```
-
-For the optional Images API client, background cleanup and masked postprocessing, follow [AI texture generation](ai-texture-generation.md).
+For UV texture recoloring, transparent decals, gutter cleanup, PNG color-metadata checks (`scripts/vrc_texture_tool.py`), and the optional Images API client (`scripts/vrc_gpt_texture_edit.py`), follow [psd-texture-workflow.md](psd-texture-workflow.md).
 
 Notes:
 - `blueprint` inspects text-serialized fields and prefab overrides only; always confirm the effective `PipelineManager` on the target avatar root in Unity before publishing.
 - `budget` counts a single `.asset`; confirm merged MA/NDMF cost with `CalcTotalCost()` on the built descriptor.
-- `vrc_texture_tool.py` guarantees pixel alignment and alpha preservation, but cannot judge visual aesthetics, emission, or world lighting—always inspect the rendered avatar in Unity.

@@ -60,7 +60,7 @@ flowchart LR
 ```text
 vrchat-avatar-modding-skills/
 ├── skills/
-│   ├── vrchat-avatar-modding/            # Core workflow + 11 references + 7 C#/Python scripts
+│   ├── vrchat-avatar-modding/            # Core workflow + 10 references + 7 C#/Python scripts
 │   ├── vrchat-project-audit-and-repair/  # Read-only audit + diagnostics + safe repair
 │   └── vrchat-clothing-rebuild/          # Blender rebuild pipeline + Unity one-shot importer
 ├── unity-mcp/                            # Bundled AnkleBreaker Unity MCP plugin (2.32.0) & server (2.30.0)
@@ -153,11 +153,9 @@ $wheel = Join-Path $toolkit 'blender-mcp/mcp_for_blender-2.3.1-py3-none-any.whl'
 
 ---
 
-## AI-assisted UV texture editing
+## PSD-First & AI-Assisted UV Texture Workflow
 
-Use GPT Image to repaint iris interiors, strand highlights and embroidery. Use Pillow for tonal ramps, transparent badge lettering and gutter cleanup. The guide includes prompts for an Images API endpoint, a host image tool, or a prompt-only session. Composite under the original mask, verify alpha, then review the work material in Unity. [UV texture workflow](skills/vrchat-avatar-modding/references/ai-texture-generation.md)
-
-For transparent lettering use `composite --decal` with a source-sized RGBA layer. Use `compare --require-visible-change` to detect edits confined to transparent pixels. The workflow includes editor-verified eye, hair, accessory and garment cases.
+Always prefer a registered layered `.psd` when available: edit a versioned PSD copy preserving author layer groups, clipping masks, blend modes, line art, and shadows unflattened so you can continue editing in Photoshop anytime. When new painted art (iris interiors, strand highlights, embroidery) is needed, generate a local GPT Image candidate and place it onto an independent masked PSD layer; when only a flattened PNG exists, use `vrc_texture_tool.py` (`recolor`, `clean-bg`, `composite`, `composite --decal`, `compare --require-visible-change --check-color-metadata`) and verify material switches on the avatar's attached Animator in Unity. See the unified [PSD-First & AI-Assisted UV Texture Workflow](skills/vrchat-avatar-modding/references/psd-texture-workflow.md).
 
 ## First Prompt Examples
 

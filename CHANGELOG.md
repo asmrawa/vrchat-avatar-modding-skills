@@ -1,10 +1,20 @@
 # Changelog
 
+## [1.2.0] - 2026-11-22
+
+### Added
+- **Unified PSD-First & AI-Assisted UV Texture Workflow (`skills/vrchat-avatar-modding/references/psd-texture-workflow.md`)**:
+  - Consolidated layered PSD editing, Pillow deterministic operations, GPT Image local generation, and Unity material acceptance into a single token-efficient reference guide (eliminating cross-file duplication).
+  - Enforced the **PSD-first rule**: when a registered layered PSD exists, always edit a versioned PSD copy preserving author layer groups, clipping masks, line art, and shadows unflattened for future human editing (and paste AI-generated local candidates onto independent masked PSD layers before exporting); fall back to direct flattened-PNG editing only when no matching PSD exists.
+  - Added recorded field cases covering fringe occlusion masks with paired `_EmissionMap` suppression, 4-state single-slot FX material swaps verified on the avatar's attached Animator, shared RGBA bow clasp layers across variants, geometry-guided hair root-to-tip gradients, and secondary shader overlay checks.
+- **PNG Color Metadata Verification (`vrc_texture_tool.py`)**:
+  - Added opt-in `compare --check-color-metadata` to detect missing or altered PNG ICC, sRGB, gamma (`gAMA`), and chromaticity (`cHRM`) tags after export.
+
 ## [1.1.0] - 2026-11-22
 
 ### Added
 - **Expanded UV texture diagnostics & tooling**:
-  - Documented atlas registration for separate pupil sprites, expression-only eye regions (alternate irises, dizzy/square eyes, closed-eye lines, emission layers), geometry-guided hair root-to-tip gradients, occluding secondary material layers, and switchable badge meshes in `skills/vrchat-avatar-modding/references/ai-texture-generation.md`.
+  - Documented atlas registration for separate pupil sprites, expression-only eye regions (alternate irises, dizzy/square eyes, closed-eye lines, emission layers), geometry-guided hair root-to-tip gradients, occluding secondary material layers, and switchable badge meshes.
   - Added renderer existence checks for empty hairstyle nodes (transform-only nodes with valid animation paths) in `skills/vrchat-project-audit-and-repair/references/avatar-integration-diagnostics.md`.
   - Added opt-in `composite --decal` for transparent lettering and `compare --require-visible-change` in `vrc_texture_tool.py` while keeping all existing defaults and exit codes backward-compatible.
 - **Open-source engineering & DX upgrades**:

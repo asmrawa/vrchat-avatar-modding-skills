@@ -27,6 +27,7 @@ Example linkage: `HatVisible = UserHatPref && OutfitAllowsHat`, `OriginalEarVisi
 4. **Configure FX layers**: Follow the project's existing controller conventions or append a small `ModularAvatarMergeAnimator` targeting FX. Verify whether binding paths are relative to the avatar root or the installer's relative root.
    - Independent `Bool`: `Off` and `On` states with two zero-duration, no-exit-time transitions (avoid self-transitions for instant switches; preserve timing for animated equip/stow props).
    - Every state should explicitly drive the same controlled property set, including restored values.
+   - When two independent Bool controls change artwork baked into one slot, use one layer to select the four material combinations. With mutually exclusive Any State transitions, test both Bool conditions on each transition and disable self-transitions. Pair color and emission in each state material. Keep dedicated visible prop meshes on their own visibility binding when the mesh and material are independently addressable.
    - Follow the project's Write Defaults convention—do not flip WD across unrelated vendor states for a single toggle.
    - For `Int` selectors, define every valid value plus startup, invalid-value, and return-to-default handling.
 5. **Unify defaults & ownership**: Align scene/prefab state, FX default state, `VRCExpressionParameters`, `ModularAvatarParameters`, and baked output. Test both clean initial load and previously `saved` parameter values. Prefer one layer or generator owning each property rather than stacking competing layers.
@@ -44,6 +45,7 @@ AnimationUtility.SetEditorCurve(clip, binding, AnimationCurve.Constant(0f, 1f / 
 
 - Trace the **baked/merged** avatar from the final menu entry through remapped parameters, FX states, and target objects (accounting for inactive parents, merged renderers, and optimizer-rewritten paths). Seeing a matching clip in source assets is not proof.
 - Test: `default -> on -> off -> on`, switching outfits and returning, preference retention across switches, rapid exclusive switching, and relevant gesture/AFK combinations. Record expected vs. actual in a compact state table.
+- For material swaps, sample each clip on an isolated clone and then drive both controls on the attached Animator. Check the material slot and texture paths in each reached state, including simultaneous changes and the return to default. A reached state can coexist with a stale renderer assignment in an editor test harness.
 - **Menu exists but does nothing**: Check parameter name/type/value, installer target, and animated hierarchy path.
 - **Turns on but cannot turn off**: Check reverse transitions, saved parameter defaults, default state values, and competing layers.
 - **Fails to restore after switching**: Check whether the exit state writes baseline values back, whether a parent remains inactive, or whether another toggle still overrides it.
