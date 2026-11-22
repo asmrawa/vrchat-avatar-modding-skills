@@ -6,183 +6,204 @@
 
 [English](README.md) | **简体中文** | [日本語](README_JA.md)
 
-一套经过大量真实 VRChat 改模实战打磨的 **Agent Skills** + **Unity MCP** + **Blender MCP** 工具包，帮助 AI 安全、非破坏式地完成 Unity 换装、道具、表情开关、材质贴图、性能优化与 Blender 服装贴合重建。
+一套开箱即用的 **Agent Skills + Unity MCP + Blender MCP** 改模工具包，让 **Codex**、**Antigravity**、**Cursor** 等支持 Agent Skills 与 MCP 的 AI 助手，能够安全、非破坏式地完成 Unity 换装、菜单开关、PSD/AI 贴图编辑、性能优化与 Blender 服装贴合重建。
 
-原生适配 **Codex**、**Antigravity**、**Cursor** 等所有支持 Agent Skills 标准与 MCP 协议的客户端。
-
----
-
-## 为什么做这套工具包？
-
-普通 AI 直接改 VRChat 工程极易踩坑：直接改坏原作者预制体、误解析 Unity YAML、在工作场景采样动画污染休止骨架导致“衣服飞起”、触发 NDMF 构建重入导致“粉球事故”、或是超出 256-bit 同步表达参数上限。
-
-本工具包将几十轮真实改模经验沉淀为 **3 个职责清晰、零重叠、客户端中立的 Skills**：
-
-- **默认非破坏式工作流**：严禁篡改原厂 FBX/Prefab/Controller，所有改动隔离在独立版本工作场景（`Assets/VRCWork/`），通过 `AssetDatabase.SaveAssetIfDirty` 精准落盘、随时可回退。
-- **三层核验体系**：严格区分 **静态序列化文件（YAML/GUID）**、**Unity 实时解析状态（MCP 或 `-batchmode`）** 与 **NDMF / Modular Avatar / AAO 构建后最终状态**。
-- **高频故障内置避坑手册**：涵盖休止骨架污染（衣服悬空）、NDMF 构建重入（粉球事故）、替换发型 AFK 消失、`probeAnchor` 与受光下限偏差、AAO BlendShape 重映射、重复 PhysBone 审计、鞋袜共用网格拆分、UV 透明贴字防白块、256-bit 参数预算审计等。
-- **账号安全红线**：VRChat SDK 登录、密码、二步验证（2FA）与人机校验一律交由用户在 Unity 可见界面手动完成，绝不记录或代输凭据。
+这套工具不只是写给 AI 的口头提示词，而是把 **Unity / Blender 实时控制桥梁（MCP）**、**可复用的 C# / Python 工具脚本** 和 **完整的 VRChat 工程规范** 结合成了一套可复现、可回退的改模工作流。
 
 ---
 
-## 工作流架构
+## 它能帮你做什么？
+
+| 模块 | 具体能力 |
+| --- | --- |
+| **换装、发型与多套衣柜** | 通过 Modular Avatar / NDMF 非破坏式整合衣服与发型；制作多套服装互斥（`Int` 衣柜）；拆分共用蒙皮网格（如把鞋和袜套拆成独立开关）；将帽子/眼镜/发饰做成跨服装共享配件并自动重算蒙皮绑定矩阵；修复换发型后挂机（AFK）消失或错位问题。 |
+| **表情菜单、参数与 FX 开关** | 制作独立开关（`Bool`）、多选互斥（`Int`）、条件联动（如戴帽自动收耳、换回其他套装自动恢复）、手持道具互斥、仅翻译菜单显示文案而不破坏参数名，并自动核验每页 8 项与 256-bit 同步参数上限。 |
+| **画图与贴图编辑（PSD 优先 + Pillow + GPT Image）** | 有 `.psd` 时优先在版本副本上用独立图层和蒙版编辑（保留原作者分层与线稿不压平，方便你自己随时打开 Photoshop 继续改）；没 PSD 时支持用 Pillow 做灰度遮罩色阶换色、透明徽章贴字、UV 边距去噪，或用 GPT Image 局部重绘虹膜/挑染/刺绣后精确合回原图集。 |
+| **道具、受光、微调与性能优化** | 校准手持道具握点、Contact 与约束；统一不同服装材质的受光下限与 `probeAnchor` 探针锚点；审计重复 PhysBone、粒子峰值容量、Mip Streaming、Write Defaults 以及 SDK 本地构建/上传报错。 |
+| **Blender 体型服装贴合重建** | 当角色体型改变、衣服单靠缩放或调骨已经贴不上时，在 Blender 后台自动投影重建躯干曲面并输出三视图预览，确认后一键回灌 Unity，完整保留原 FBX 的 UV、材质与蒙皮权重。 |
+| **只读项目审计与安全修复** | 默认只读不改文件，帮你查清场景、Prefab 覆盖、GUID/fileID 引用链、菜单/FX 动画绑定以及 NDMF 合并后的真实结果；只有在你明确要求时才在隔离工作区执行最小范围修复与无引用文件清理。 |
+
+---
+
+## 各项功能是怎么实现的？
 
 ```mermaid
 flowchart LR
-    Client["AI 客户端 (Codex / Antigravity / Cursor)"] --> Mod["vrchat-avatar-modding"]
-    Client --> Audit["vrchat-project-audit-and-repair"]
-    Client --> Rebuild["vrchat-clothing-rebuild"]
+    User["你的改模需求"] --> Client["AI 客户端 (Codex / Antigravity / Cursor)"]
+    Client --> S1["Skill 1: vrchat-avatar-modding"]
+    Client --> S2["Skill 2: vrchat-project-audit-and-repair"]
+    Client --> S3["Skill 3: vrchat-clothing-rebuild"]
 
-    Mod --> UnityMCP["AnkleBreaker Unity MCP"]
-    Audit --> UnityMCP
-    Mod --> OfflineCLI["Python / C# 工具 (审计 / UV 贴图 / 日志)"]
-    Rebuild --> BlenderMCP["MCP for Blender / 后台脚本"]
-    Rebuild --> UnityMCP
+    S1 --> UMCP["Unity MCP 桥接"]
+    S2 --> UMCP
+    S1 --> CLI["Python / C# 工具脚本"]
+    S3 --> BMCP["Blender MCP / 后台脚本"]
+    S3 --> UMCP
 
-    UnityMCP --> Work["隔离工作区 Assets/VRCWork/ + NDMF 验证"]
-    BlenderMCP --> Work
+    UMCP --> Work["隔离工作区 Assets/VRCWork/ + NDMF 验证"]
+    CLI --> Work
+    BMCP --> Work
 ```
 
-## 包含的 3 个 Skills
+### 1. Unity 改模是如何做到安全且可回退的？
+- **实时操控 Unity（Unity MCP）**：仓库内置 **AnkleBreaker Unity MCP** 插件与 Node 服务端，AI 可以直接发现当前打开的 Unity 实例、读取场景层级、组件、材质槽和动画状态，并按需执行受控 C# 片段和截取编辑器画面，而不是靠猜 YAML 文件盲改。
+- **隔离工作版本**：绝不修改原厂导入的预制体、FBX、Controller 和贴图。每次较大修改都在 `Assets/VRCWork/` 下创建独立版本场景与衍生资源副本，只保存本轮修改的资产（`AssetDatabase.SaveAssetIfDirty`），旧版本随时可一键打开回退。
+- **三层核验体系**：严格区分 **① 静态序列化文件（YAML/GUID）**、**② Unity 编辑器当前解析状态** 和 **③ NDMF / Modular Avatar / Avatar Optimizer 构建后的最终状态**。所有动画采样和姿态测试都在临时克隆体上进行，确保工作场景的源骨架保持干净。
+- **内置 C# 编辑器原语**：[`VrcAvatarIntegration.cs`](skills/vrchat-avatar-modding/scripts/VrcAvatarIntegration.cs) 与 [`VrcMaterialSwap.cs`](skills/vrchat-avatar-modding/scripts/VrcMaterialSwap.cs) 负责安全克隆剪辑与控制器、按属性白名单对齐材质受光、保持世界静止几何不变的骨骼重绑定，以及限定在工作目录内的材质贴图切换。
 
-| Skill | 定位 | 核心能力 |
+### 2. 改贴图 / 画图具体是怎么跑通的？
+所有贴图修改统一遵循 [`psd-texture-workflow.md`](skills/vrchat-avatar-modding/references/psd-texture-workflow.md) 的 **PSD 优先、PNG 兜底** 流程：
+1. **先在 Unity 定位真实生效的贴图**：找到实际渲染该部位的 Renderer、子网格、材质槽、Shader 贴图属性（如 `_MainTex`、`_EmissionMap`、叠加层、描边贴图），以及 FX 动画里是否对该槽位做了材质切换。
+2. **有匹配 PSD → 优先改 PSD 副本**：核对 PSD 合成图与当前贴图 UV 对齐后，在版本化 PSD 副本上新增独立图层和蒙版（通过 Photoshop 或非破坏式 Python 流程），**保留原作者所有分组、剪贴蒙版、混合模式、线稿和阴影不压平**，改完导出 PNG，同时保留可继续手动精修的 PSD。
+3. **无 PSD（只有扁平 PNG），或需要 AI 绘制全新图案**：
+   - **纯换色 / 改色阶**：用 [`vrc_texture_tool.py`](skills/vrchat-avatar-modding/scripts/vrc_texture_tool.py) 的 `recolor`，在灰度遮罩内按原图明度映射新的暗部/中间调/高光，100% 保留原有线条与轮廓。
+   - **徽章 / 胸牌加透明文字或图标**：用 `vrc_texture_tool.py composite --decal`，将原尺寸透明 RGBA 图层乘以区域遮罩叠加到底图上，不产生白底方块。
+   - **重绘复杂图案（新虹膜/瞳孔、发丝挑染、服装刺绣）**：用 [`vrc_gpt_texture_edit.py`](skills/vrchat-avatar-modding/scripts/vrc_gpt_texture_edit.py)（也支持宿主自带生图工具或纯 Prompt 手动发给 ChatGPT）配合双遮罩（API 引导遮罩 + 像素级保护遮罩）基于原图局部生成；出图后可作为独立蒙版图层贴回 PSD，或经 `clean-bg` 去底噪后用 `composite` 严格锁死遮罩外像素与原图 Alpha 合回原 PNG。
+4. **自动化校验与 Unity 上身验收**：运行 `vrc_texture_tool.py compare` 校验分辨率、保护区零改动（`outside_mask=0`）、透明度零变化（`alpha_changed=0`）、可见变化与 PNG ICC/sRGB 色彩标签，再通过 `VrcMaterialSwap.cs` 绑定到工作材质，用角色挂载的 Animator 实测所有状态切换与明暗光照表现。
+
+### 3. Blender 贴身服装重建是怎么实现的？
+针对体型大幅改动后穿模严重的衣服（[`vrchat-clothing-rebuild`](skills/vrchat-clothing-rebuild/SKILL.md)）：
+1. [`fit_clothing.py`](skills/vrchat-clothing-rebuild/scripts/fit_clothing.py) 在 Blender 后台模式运行，将服装主壳体按可调间隙射线投影到目标素体表面（领口/袖口/腰部平滑过渡），用 KD-Tree 同步带动纽扣、皮带等分离饰件，自动渲染正面、侧面、四分之三正交预览图，同时严格保留原顶点顺序、UV、材质槽和顶点组。
+2. 你确认预览图无误后，[`install_unity.py`](skills/vrchat-clothing-rebuild/scripts/install_unity.py) 自动备份工作场景并投递一次性 Unity C# 导入脚本，自动匹配顶点（含 X 轴镜像检测）、迁移原 FBX 的 UV 和蒙皮权重生成新的工作网格资产并保存。
+3. 附带 [`blender_mcp_headless.py`](skills/vrchat-clothing-rebuild/scripts/blender_mcp_headless.py)，支持在不弹 Blender 界面的后台模式直接启动 Blender MCP。
+
+### 4. 账号与上传安全边界
+- 本地构建、预览与线上上传完全分离，未获你明确要求绝不触发 SDK 上传或修改 Blueprint ID。
+- VRChat 账号登录、密码、二步验证（2FA）、人机校验与版权确认**一律交由你在 Unity 可见的 SDK 面板手动完成**，脚本绝不读取、记录或代输任何凭据。
+
+---
+
+## 使用前需要准备什么？
+
+| 组件 | 是否必需 | 用途说明 |
 | --- | --- | --- |
-| [`vrchat-avatar-modding`](skills/vrchat-avatar-modding/SKILL.md) | **核心改模工作流** | 整套换装与多衣柜互斥、手持道具与 Contact、菜单与 FX 开关联动、AFK 替换发型修复、UV 改色与贴字、局部贴合与受光统一、身高警告与性能优化、SDK 构建排错、内置 7 个 C#/Python 实用脚本 |
-| [`vrchat-project-audit-and-repair`](skills/vrchat-project-audit-and-repair/SKILL.md) | **只读项目审计与显式安全修复** | 三层检查（静态 GUID/fileID、Unity MCP 或两轮批处理检查、NDMF 构建态）、高频症状分流诊断、仅在明确授权后执行最小范围修复与无引用候选清理 |
-| [`vrchat-clothing-rebuild`](skills/vrchat-clothing-rebuild/SKILL.md) | **Blender 贴身服装曲面重建** | Blender 后台射线投影重建躯干贴合、保留 UV/材质/顶点组、自动三视图正交预览渲染、验证后一键回灌 Unity 保蒙皮权重、附带 Blender 无头 MCP 启动器 |
+| **AI 客户端**（Codex / Antigravity / Cursor 等） | 必需 | 加载 3 个改模 Skills 并挂载 MCP 服务。 |
+| **Unity Editor + VRChat SDK3 (Avatars)** | 必需 | 与工程 `ProjectSettings/ProjectVersion.txt` 匹配的 Unity 版本；推荐搭配 Modular Avatar、NDMF、lilToon / Poiyomi、Gesture Manager、Avatar Optimizer。 |
+| **Node.js >= 18** | 用 Unity MCP 必需 | 运行内置的 `unity-mcp/unity-mcp-server` 桥接服务（已在 Node.js 24 验证）。 |
+| **Python >= 3.10** | 用 CLI 工具必需 | 运行离线审计、日志摘要、贴图处理、服装脚本与 `doctor.py`。 |
+| **Pillow（`pip install pillow`）** | 改贴图时必需 | `vrc_texture_tool.py` 依赖它进行遮罩换色、透明合成、去底噪与像素/ICC 校验。 |
+| **Photoshop / PSD 编辑器（或 `psd-tools`）** | 改 PSD 时推荐 | 用于直接编辑保留分层的 `.psd` 源文件并导出 PNG。 |
+| **OpenAI 兼容 Images API Key** | 选配（仅 API 直出） | 仅在使用 `vrc_gpt_texture_edit.py` 直连 API 时通过环境变量提供；用宿主自带生图或纯 Prompt 模式不需要。 |
+| **Blender + `uv`（`uvx`）** | 选配（改网格/衣服） | 仅在使用 Blender MCP 或 `vrchat-clothing-rebuild` 时需要。 |
 
-> 注：所有 `SKILL.md` 与 `references/` 均采用精炼英文编写，兼顾最低 Token 消耗与跨语言/跨客户端通用性；你依然可以直接用简体中文向 AI 提问和下达改模指令。
-
----
-
-## 目录结构
-
-```text
-vrchat-avatar-modding-skills/
-├── skills/
-│   ├── vrchat-avatar-modding/            # 核心改模主流程 + 10 篇专题参考 + 7 个 C#/Python 工具
-│   ├── vrchat-project-audit-and-repair/  # 只读三层审计 + 症状分流 + 安全修复校验
-│   └── vrchat-clothing-rebuild/          # Blender 贴合重建脚本 + Unity 一次性回灌器 + 无头 MCP 启动器
-├── unity-mcp/                            # 随包提供的 AnkleBreaker Unity MCP 插件 (2.32.0) 与服务端 (2.30.0)
-├── blender-mcp/                          # 随包提供的 MCP for Blender (2.3.1 wheel 与插件脚本)
-├── config/                               # MCP 配置示例（Codex、Antigravity / Cursor）
-├── templates/                            # 通用跨会话改模交接模板（已脱敏）
-├── scripts/                              # 环境体检 doctor、全量 QA 校验与 Skill 打包脚本
-├── tests/                                # Python 离线工具单元测试
-├── install.ps1 / install.sh              # Windows / macOS / Linux 一键安装脚本
-└── THIRD_PARTY_NOTICES.md                # 完整的第三方开源归属与许可声明
-```
-
----
-
-## 快速上手
-
-先将本仓库克隆或解压到固定目录（例如 `C:/Tools/vrchat-avatar-modding-skills`），以下命令均在仓库根目录执行。
-
-### 1. 安装改模 Skills
-
-**Windows（PowerShell）：**
-
-```powershell
-# 安装到 Codex（也可选：antigravity、cursor、all）
-.\install.ps1 -Client codex
-
-# 可选：同时安装 Unity MCP Node 依赖与 Blender 插件
-.\install.ps1 -Client all -InstallUnityMcpDeps -InstallBlenderAddon
-```
-
-**macOS / Linux：**
-
-```bash
-chmod +x install.sh
-./install.sh codex   # 可选：antigravity | cursor | all
-```
-
-完成后重启客户端或新开会话即可生效。
-
-**一键环境体检（随时排查缺失依赖）：**
+可以随时在仓库根目录运行一键环境体检，看看本机缺什么以及对应的安装命令：
 
 ```powershell
 python -X utf8 scripts/doctor.py
 ```
 
-**跨多轮对话改模交接**：将 [`templates/AVATAR_HANDOFF_TEMPLATE.md`](templates/AVATAR_HANDOFF_TEMPLATE.md) 复制到你的私人工作目录，记录工作场景版本、衣柜参数与回退点，后续新开会话直接交给 AI 接力。
+---
+
+## 包含的 3 个 Skills 与目录结构
+
+| Skill | 什么时候用 | 入口文件 |
+| --- | --- | --- |
+| **`vrchat-avatar-modding`** | 主力改模：换装、衣柜、菜单/FX 开关、道具、PSD/AI 贴图、受光与贴合、性能优化、SDK 打包排错 | [`skills/vrchat-avatar-modding/SKILL.md`](skills/vrchat-avatar-modding/SKILL.md) |
+| **`vrchat-project-audit-and-repair`** | 只读体检与排错（静态 YAML/GUID、Unity MCP、离线 `-batchmode`、NDMF 构建态）+ 明确授权下的最小安全修复与清理 | [`skills/vrchat-project-audit-and-repair/SKILL.md`](skills/vrchat-project-audit-and-repair/SKILL.md) |
+| **`vrchat-clothing-rebuild`** | Blender 躯干贴合重塑、三视图正交预览与 Unity 保留蒙皮一键回灌 | [`skills/vrchat-clothing-rebuild/SKILL.md`](skills/vrchat-clothing-rebuild/SKILL.md) |
+
+```text
+vrchat-avatar-modding-skills/
+├── skills/
+│   ├── vrchat-avatar-modding/            # 主力改模流程 + 10 篇专题手册 + 7 个 C#/Python 脚本
+│   ├── vrchat-project-audit-and-repair/  # 三层只读审计 + 症状分流 + 安全修复校验
+│   └── vrchat-clothing-rebuild/          # Blender 重建脚本 + Unity 回灌器 + 无头 MCP 启动器
+├── unity-mcp/                            # 内置 AnkleBreaker Unity MCP 插件 (2.32.0) 与服务端 (2.30.0)
+├── blender-mcp/                          # 内置 MCP for Blender (2.3.1 wheel 与插件脚本)
+├── config/                               # MCP 配置示例（Codex TOML、通用 JSON）
+├── templates/                            # 通用跨会话改模交接模板（已脱敏）
+├── scripts/                              # 环境体检 doctor.py、QA 校验 validate_toolkit.py、打包脚本
+├── tests/                                # 20 项 Python 工具自动化单元测试
+├── install.ps1 / install.sh              # Windows / macOS / Linux 一键安装脚本
+└── THIRD_PARTY_NOTICES.md                # 完整的第三方开源归属与许可声明
+```
+
+> 注：所有 `SKILL.md` 与 `references/` 使用精炼英文编写，既省 Token 又兼容各主流模型；你依然可以直接用简体中文、日文或英文向 AI 下达指令。
 
 ---
 
-### 2. 连接 Unity MCP
+## 快速安装与连接
 
-1. 使用工程 `ProjectSettings/ProjectVersion.txt` 指定的对应 Unity 版本打开你的 VRChat 工程。
+先将本仓库克隆到固定目录（例如 `C:/Tools/vrchat-avatar-modding-skills`），或从 [GitHub Releases](https://github.com/asmrawa/vrchat-avatar-modding-skills/releases) 单独下载各 Skill 的 ZIP 包。以下命令均在仓库根目录执行。
+
+### 第 1 步：安装 Skills
+
+**Windows（PowerShell）：**
+```powershell
+# 可选客户端：codex | antigravity | cursor | all
+.\install.ps1 -Client codex
+
+# 可选：顺带安装 Unity MCP 的 Node 依赖和 Blender 插件
+.\install.ps1 -Client all -InstallUnityMcpDeps -InstallBlenderAddon
+```
+
+**macOS / Linux：**
+```bash
+chmod +x install.sh
+./install.sh codex   # 可选：antigravity | cursor | all
+```
+
+### 第 2 步：连接 Unity MCP
+
+1. 用工程要求的对应 Unity 版本打开你的 VRChat 工程。
 2. 在 Unity 中打开 `Window → Package Manager → + → Add package from disk...`，选择 [`unity-mcp/unity-mcp-plugin/package.json`](unity-mcp/unity-mcp-plugin/package.json)。
-3. 等待编译完成后打开 `Window → AB Unity MCP`，确认显示 `Server Running`（默认端口范围 `7890–7899`）。
-4. 安装锁定版本的 Node.js 依赖（要求 Node.js 18+，已于 Node.js 24 验证）：
-
-```powershell
-$toolkit = (Get-Location).Path
-$unityDir = Join-Path $toolkit 'unity-mcp/unity-mcp-server'
-$nodeExe = (Get-Command node.exe -ErrorAction Stop).Source
-$unityEntry = Join-Path $unityDir 'src/index.js'
-Push-Location -LiteralPath $unityDir
-try { npm.cmd ci --omit=dev --ignore-scripts } finally { Pop-Location }
-```
-
+3. 编译完成后打开 `Window → AB Unity MCP`，确认显示 `Server Running`（默认端口 `7890–7899`）。
+4. 安装锁定版本的 Node.js 依赖：
+   ```powershell
+   $toolkit = (Get-Location).Path
+   $unityDir = Join-Path $toolkit 'unity-mcp/unity-mcp-server'
+   $nodeExe = (Get-Command node.exe -ErrorAction Stop).Source
+   $unityEntry = Join-Path $unityDir 'src/index.js'
+   Push-Location -LiteralPath $unityDir
+   try { npm.cmd ci --omit=dev --ignore-scripts } finally { Pop-Location }
+   ```
 5. 在你的 AI 客户端中注册 Unity MCP：
-   - **Codex CLI**：`codex mcp add unity_mcp -- "$nodeExe" "$unityEntry"`（或合并 [`config/codex.config.example.toml`](config/codex.config.example.toml)）。
-   - **Antigravity / Cursor / 通用 JSON 客户端**：将 [`config/antigravity_mcp.example.json`](config/antigravity_mcp.example.json) 中的 `unity-mcp` 段落合并到配置并替换本机路径。
-6. 重启客户端，让 AI 调用 `unity_list_instances` 核对工程路径与活动场景，并通过 `unity_select_instance` 选中目标实例。
+   - **Codex CLI**：`codex mcp add unity_mcp -- "$nodeExe" "$unityEntry"`（或合并 [`config/codex.config.example.toml`](config/codex.config.example.toml)）
+   - **Antigravity / Cursor / 通用 JSON 客户端**：合并 [`config/antigravity_mcp.example.json`](config/antigravity_mcp.example.json) 中的 `unity-mcp` 段落并替换本机路径。
+6. 重启客户端，让 AI 调用 `unity_list_instances` 确认已连上目标工程。
 
----
+### 第 3 步：连接 Blender MCP（可选）
 
-### 3. 连接 Blender MCP（可选，用于网格/服装贴合编辑）
-
-1. 安装 **Blender** 与 **[uv](https://docs.astral.sh/uv/getting-started/installation/)**（要求 Python 3.10+）。
-2. 从随包提供的 wheel 安装匹配的 Blender 插件：
-
-```powershell
-$toolkit = (Get-Location).Path
-$uvxExe = (Get-Command uvx.exe -ErrorAction Stop).Source
-$wheel = Join-Path $toolkit 'blender-mcp/mcp_for_blender-2.3.1-py3-none-any.whl'
-& $uvxExe --from $wheel mcp-for-blender install-addon
-```
-
-   *（也可在 Blender 的 `编辑 → 偏好设置 → 插件 → Install from Disk` 中直接选择 [`blender-mcp/mcp_for_blender_addon.py`](blender-mcp/mcp_for_blender_addon.py)。）*
-3. 在 Blender 插件中勾选启用 `MCP for Blender`，在 3D 视图按 `N` 打开侧栏点击 `Start MCP Server`（如需无界面后台运行，可使用 [`skills/vrchat-clothing-rebuild/scripts/blender_mcp_headless.py`](skills/vrchat-clothing-rebuild/scripts/blender_mcp_headless.py)）。
-4. 在 AI 客户端中注册 Blender MCP：
-   - **Codex CLI**：`codex mcp add blender --env BLENDER_MCP_SAFE_MODE=1 --env DISABLE_TELEMETRY=true -- "$uvxExe" --from "$wheel" mcp-for-blender`（或合并 [`config/codex.config.example.toml`](config/codex.config.example.toml)）。
+1. 安装 **Blender** 与 **[uv](https://docs.astral.sh/uv/getting-started/installation/)**。
+2. 安装随包提供的 Blender 插件：
+   ```powershell
+   $toolkit = (Get-Location).Path
+   $uvxExe = (Get-Command uvx.exe -ErrorAction Stop).Source
+   $wheel = Join-Path $toolkit 'blender-mcp/mcp_for_blender-2.3.1-py3-none-any.whl'
+   & $uvxExe --from $wheel mcp-for-blender install-addon
+   ```
+   *（也可在 Blender `编辑 → 偏好设置 → 插件 → Install from Disk` 中直接选择 [`blender-mcp/mcp_for_blender_addon.py`](blender-mcp/mcp_for_blender_addon.py)。）*
+3. 在插件列表勾选启用 `MCP for Blender`，在 3D 视图按 `N` 打开侧栏点击 `Start MCP Server`（或用 [`blender_mcp_headless.py`](skills/vrchat-clothing-rebuild/scripts/blender_mcp_headless.py) 无界面后台启动）。
+4. 在客户端注册 Blender MCP：
+   - **Codex CLI**：`codex mcp add blender --env BLENDER_MCP_SAFE_MODE=1 --env DISABLE_TELEMETRY=true -- "$uvxExe" --from "$wheel" mcp-for-blender`
    - **Antigravity / Cursor / 通用 JSON 客户端**：参考 [`config/antigravity_mcp.example.json`](config/antigravity_mcp.example.json) 合并 `blender` 段落。
 
 ---
 
-## 画图与 UV 贴图统一工作流：有 PSD 优先改 PSD，无 PSD 再改 PNG
+## 日常使用指令示例
 
-只要工程或原包里有与当前贴图 UV 对齐的 `.psd`，一律优先在版本化 PSD 副本上用图层和蒙版做局部修改（完整保留原作者分组、剪贴蒙版、混合模式、线稿与阴影**不合并压平**，方便后续随时用 Photoshop 继续微调）；需要 GPT Image 绘制新虹膜、挑染或刺绣时，把生成的局部候选对位贴回独立 PSD 图层并挂上蒙版后导出；仅在没有 PSD、只有扁平 PNG 图集时，直接用 `vrc_texture_tool.py`（`recolor` 色阶映射、`clean-bg` 去底噪、`composite` 遮罩回贴、`composite --decal` 透明徽章文字、`compare --require-visible-change --check-color-metadata` 像素与 ICC 色彩元数据校验），最后在 Unity 用角色挂载的 Animator 实测所有材质切换状态。详见统一手册：[PSD 优先与 AI 辅助 UV 贴图工作流](skills/vrchat-avatar-modding/references/psd-texture-workflow.md)。
+**1. 首次接手 / 只读体检（推荐先跑一次）：**
+> 使用 `vrchat-project-audit-and-repair`。先列出 Unity 实例，核对当前工程、活动场景和角色根对象，再检查现有 Expression Menu、同步参数占用和 FX Controller。本轮仅只读检查，不要修改或保存任何文件。
 
-## 首次使用指令示例
+**2. 换装并接入衣柜菜单：**
+> 使用 `vrchat-avatar-modding`。先在 `Assets/VRCWork/` 下另存独立版本工作场景，用 Modular Avatar 整合刚导入的服装预制体并保留原衣开关，验证 NDMF 合并后的骨骼绑定与 256-bit 参数预算，最后汇报改动路径与已验证范围。
 
-**只读体检（推荐首次使用先跑一次）：**
+**3. 修改眼睛 / 头发 / 衣服贴图（PSD 优先）：**
+> 使用 `vrchat-avatar-modding`（读取 `psd-texture-workflow.md`）。先在 Unity 里查清当前生效的 Renderer、材质槽和贴图；如果有对应的 `.psd`，在版本副本上用独立图层和蒙版修改且不要压平图层；没有 PSD 再走 `vrc_texture_tool.py` 或 GPT Image 局部编辑与遮罩合成，跑完像素与色彩元数据校验后挂到工作材质给我看近景。
 
-> 使用 `vrchat-project-audit-and-repair` 技能。先列出 Unity 实例，核对目标工程、活动场景和角色根对象，再检查现有 Expression Menu、同步参数占用和 FX Controller。本轮仅只读检查，不要修改或保存任何文件。
+**4. 在 Blender 重建贴身服装：**
+> 使用 `vrchat-clothing-rebuild`。在 Blender 检查角色素体和服装网格岛，配置躯干贴合重建并输出三视图预览，等我确认预览图无误后再导回 Unity 工作场景。
 
-**整合新衣服与菜单开关：**
-
-> 使用 `vrchat-avatar-modding` 技能。先在 `Assets/VRCWork/` 下另存独立版本工作场景，通过 Modular Avatar 整合新导入的服装预制体并保留原衣开关，核验 NDMF 合并后的骨骼绑定与 256-bit 参数预算，最后汇报实际验证到的环节。
-
-**Blender 贴身服装重建：**
-
-> 使用 `vrchat-clothing-rebuild` 技能。在 Blender 检查角色素体和目标服装的连通网格岛，配置躯干贴合重建并输出三视图预览，等我确认预览图无误后再写入 Unity 工作场景。
+> **长期跨多轮对话改模？** 建议把 [`templates/AVATAR_HANDOFF_TEMPLATE.md`](templates/AVATAR_HANDOFF_TEMPLATE.md) 复制到你的私人目录，记录每个版本的场景路径、衣柜参数表和回退基线，新开对话直接发给 AI 就能无缝接力。
 
 ---
 
-## 开发者自检
+## 开发者校验与测试
 
 ```bash
-# 校验所有 Skill 元数据、Markdown 相对链接、脱敏隐私检查与 Python 语法
-python scripts/validate_toolkit.py
-
-# 运行 Python 离线审计与贴图工具单元测试
-python -m unittest discover -s tests -v
-
-# 在 dist/ 中生成三个独立的 Skill 压缩包
+python -X utf8 scripts/doctor.py
+python -X utf8 scripts/validate_toolkit.py
+python -X utf8 -m unittest discover -s tests -v
 python -X utf8 scripts/package_skills.py
 ```
 
@@ -197,4 +218,4 @@ python -X utf8 scripts/package_skills.py
 
 <img src="unity-mcp/unity-mcp-plugin/icon.png" alt="Powered by AnkleBreaker MCP" width="96" />
 
-> **提示**：角色素体、服装、着色器及 VRChat SDK 请使用你本人合法获取的资产；分享或提交代码前请勿包含商业模型资产、Blueprint ID 或个人账号信息。
+> **提示**：请使用你本人合法获取的角色素体、服装、着色器及 VRChat SDK 资产；提交或分享前请勿包含商业模型资产、Blueprint ID 或个人账号信息。
