@@ -1,0 +1,4 @@
+interface:
+  display_name: "VRChat Clothing Rebuild"
+  short_description: "Rebuild torso-fitted VRChat garments in Blender and re-import into Unity preserving UVs and skinning"
+  default_prompt: "Use vrchat-clothing-rebuild to inspect the target avatar body and garment in Blender, configure a safe torso-fit rebuild, review rendered previews, and import the verified mesh back into the Unity work scene without modifying vendor assets."

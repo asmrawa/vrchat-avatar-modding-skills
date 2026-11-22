@@ -1,0 +1,175 @@
+// Imports the verified garment rebuild into the work scene without touching vendor assets.
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+
+[InitializeOnLoad]
+public static class VrcClothingRebuildOneShot
+{
+    private const string ScenePath = "__SCENE_PATH__";
+    private const string FbxPath = "__FBX_PATH__";
+    private const string OutputPath = "__WORK_MESH_PATH__";
+    private const string DataPath = "__DATA_PATH__";
+    private const bool OverwriteMesh = __OVERWRITE_MESH__;
+
+    static VrcClothingRebuildOneShot() { EditorApplication.delayCall += ApplyOnce; }
+
+    private static Vector3[] ReadVectors(string filename, int count)
+    {
+        var lines = File.ReadAllLines(Path.Combine(DataPath, filename));
+        if (lines.Length != count) throw new InvalidDataException(filename + " line count: " + lines.Length);
+        return lines.Select((line, index) => {
+            var p = line.Split(',');
+            if (p.Length != 3) throw new InvalidDataException(filename + " row " + index);
+            return new Vector3(
+                float.Parse(p[0], CultureInfo.InvariantCulture),
+                float.Parse(p[1], CultureInfo.InvariantCulture),
+                float.Parse(p[2], CultureInfo.InvariantCulture));
+        }).ToArray();
+    }
+
+    private static void ApplyOnce()
+    {
+        var scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+        if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || scene.path != ScenePath) return;
+        string reportPath = Path.Combine(DataPath, "unity_import_report.txt");
+        try
+        {
+            var root = scene.GetRootGameObjects().First(go => go.name == "__AVATAR_ROOT__");
+            var targetTransform = root.transform.Find("__GARMENT_NAME__");
+            if (targetTransform == null) throw new InvalidOperationException("Garment transform not found under avatar root: __GARMENT_NAME__");
+            var renderer = targetTransform.GetComponent<SkinnedMeshRenderer>();
+            if (renderer == null) throw new InvalidOperationException("SkinnedMeshRenderer missing on: __GARMENT_NAME__");
+
+            var original = AssetDatabase.LoadAllAssetsAtPath(FbxPath).OfType<Mesh>()
+                .First(m => m.name == "__GARMENT_NAME__");
+            if (original.vertexCount != __UNITY_VERTICES__ || renderer.bones.Length != __BONE_COUNT__ || original.subMeshCount != 1)
+                throw new InvalidOperationException("Garment source mesh, submesh count, or rig changed.");
+
+            var source = ReadVectors("source.tsv", __BLENDER_VERTICES__);
+            var target = ReadVectors("target.tsv", __BLENDER_VERTICES__);
+            var targetNormals = ReadVectors("normals.tsv", __BLENDER_VERTICES__);
+            var lining = new HashSet<int>(
+                File.ReadAllLines(Path.Combine(DataPath, "removed_indices.txt"))
+                    .Where(line => !string.IsNullOrWhiteSpace(line))
+                    .Select(line => int.Parse(line.Trim(), CultureInfo.InvariantCulture)));
+            if (lining.Count != __REMOVED_VERTICES__) throw new InvalidDataException("Unexpected removed-island vertex count.");
+
+            var unity = original.vertices;
+            var directIndex = new int[unity.Length];
+            var mirrorIndex = new int[unity.Length];
+            double directError = 0, mirrorError = 0;
+            int directMatches = 0, mirrorMatches = 0;
+            for (int i = 0; i < unity.Length; i++)
+            {
+                float dBest = float.PositiveInfinity, mBest = float.PositiveInfinity;
+                int dIndex = -1, mIndex = -1;
+                for (int j = 0; j < source.Length; j++)
+                {
+                    var d = (unity[i] - source[j]).sqrMagnitude;
+                    var reflected = new Vector3(-source[j].x, source[j].y, source[j].z);
+                    var m = (unity[i] - reflected).sqrMagnitude;
+                    if (d < dBest) { dBest = d; dIndex = j; }
+                    if (m < mBest) { mBest = m; mIndex = j; }
+                }
+                directIndex[i] = dBest < 9e-10f ? dIndex : -1;
+                mirrorIndex[i] = mBest < 9e-10f ? mIndex : -1;
+                if (directIndex[i] >= 0) { directMatches++; directError += dBest; }
+                if (mirrorIndex[i] >= 0) { mirrorMatches++; mirrorError += mBest; }
+            }
+            bool reflectedX = mirrorMatches > directMatches ||
+                (mirrorMatches == directMatches && mirrorError < directError);
+            var mapping = reflectedX ? mirrorIndex : directIndex;
+            int matched = mapping.Count(index => index >= 0);
+            if (matched < __MIN_MATCHED__) throw new InvalidDataException("Only " + matched + " of __UNITY_VERTICES__ garment vertices mapped.");
+            for (int i = 0; i < mapping.Length; i++)
+            {
+                if (mapping[i] >= 0) continue;
+                var p = unity[i];
+                if (p.y >= __Y_START__f && p.y <= __Y_END__f && Math.Abs(p.x) < __X_ZERO__f && p.z > __FRONT_START__f)
+                    throw new InvalidDataException("Unmapped torso vertex " + i);
+            }
+
+            var triangles = original.GetTriangles(0);
+            var kept = new List<int>(triangles.Length);
+            int removed = 0;
+            for (int i = 0; i < triangles.Length; i += 3)
+            {
+                int a = mapping[triangles[i]], b = mapping[triangles[i + 1]], c = mapping[triangles[i + 2]];
+                if (a >= 0 && b >= 0 && c >= 0 && lining.Contains(a) && lining.Contains(b) && lining.Contains(c))
+                    removed++;
+                else
+                {
+                    kept.Add(triangles[i]); kept.Add(triangles[i + 1]); kept.Add(triangles[i + 2]);
+                }
+            }
+            if (removed < __MIN_REMOVED_TRIANGLES__ || removed > __MAX_REMOVED_TRIANGLES__)
+                throw new InvalidDataException("Unexpected removed triangle count: " + removed);
+
+            var existing = AssetDatabase.LoadAssetAtPath<Mesh>(OutputPath);
+            if (existing != null)
+            {
+                if (!OverwriteMesh)
+                    throw new InvalidOperationException("Work mesh already exists; choose a new versioned path or enable overwrite_mesh: " + OutputPath);
+                AssetDatabase.DeleteAsset(OutputPath);
+            }
+
+            string outputDir = Path.GetDirectoryName(OutputPath).Replace('\\', '/');
+            if (!AssetDatabase.IsValidFolder(outputDir))
+                Directory.CreateDirectory(outputDir);
+
+            var vertices = (Vector3[])unity.Clone();
+            var normals = original.normals;
+            for (int i = 0; i < mapping.Length; i++)
+            {
+                int j = mapping[i];
+                if (j < 0) continue;
+                var delta = target[j] - source[j];
+                if (reflectedX) delta.x = -delta.x;
+                vertices[i] += delta;
+                if (delta.sqrMagnitude > 1e-12f && !lining.Contains(j))
+                {
+                    var normal = targetNormals[j];
+                    if (reflectedX) normal.x = -normal.x;
+                    if (normal.sqrMagnitude > .5f) normals[i] = normal.normalized;
+                }
+            }
+            var fitted = UnityEngine.Object.Instantiate(original);
+            fitted.name = "__OUTPUT_MESH_NAME__";
+            fitted.vertices = vertices;
+            fitted.normals = normals;
+            fitted.SetTriangles(kept, 0);
+            fitted.RecalculateTangents();
+            fitted.RecalculateBounds();
+            if (fitted.vertexCount != original.vertexCount ||
+                fitted.bindposes.Length != original.bindposes.Length ||
+                fitted.boneWeights.Length != original.boneWeights.Length ||
+                fitted.uv.Length != original.uv.Length)
+                throw new InvalidOperationException("Skinning or UV transfer failed.");
+            AssetDatabase.CreateAsset(fitted, OutputPath);
+
+            Undo.RecordObject(renderer, "Assign rebuilt garment mesh");
+            renderer.sharedMesh = fitted;
+            EditorUtility.SetDirty(renderer);
+            PrefabUtility.RecordPrefabInstancePropertyModifications(renderer);
+            AssetDatabase.SaveAssetIfDirty(fitted);
+            EditorSceneManager.MarkSceneDirty(scene);
+            if (!EditorSceneManager.SaveScene(scene)) throw new IOException("Could not save the work scene.");
+            File.WriteAllText(reportPath, "OK|mapped=" + matched +
+                "|reflection=" + reflectedX + "|removed_triangles=" + removed +
+                "|asset=" + OutputPath);
+            Debug.Log("[VRCWork] Rebuilt garment imported; mapped " + matched +
+                " vertices, reflection=" + reflectedX + ", removed triangles=" + removed + ".");
+        }
+        catch (Exception error)
+        {
+            File.WriteAllText(reportPath, "ERROR|" + error);
+            Debug.LogError("[VRCWork] Garment import failed: " + error);
+        }
+    }
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "VRChat Project Audit & Repair"
+  short_description: "Read-only audit of VRChat Unity projects, GUID references, and NDMF builds, with explicit-only safe repair"
+  default_prompt: "Use vrchat-project-audit-and-repair to inspect this VRChat Unity project, trace scenes, menus, animators, and asset references across static/Unity/build layers without modifying source assets, and report verified findings."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "VRChat Avatar Modding"
+  short_description: "Configure, verify, optimize, and version VRChat avatar mods in Unity"
+  default_prompt: "Use vrchat-avatar-modding to inspect the target VRChat Unity project, isolate a versioned work scene, implement the requested outfit/prop/toggle/material changes safely, validate NDMF output and parameter budgets, and report what was verified."
