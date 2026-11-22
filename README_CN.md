@@ -1,5 +1,9 @@
 # VRChat 改模 Skills 与 Unity / Blender MCP 工具包
 
+[![Toolkit QA & Tests](https://github.com/asmrawa/vrchat-avatar-modding-skills/actions/workflows/ci.yml/badge.svg)](https://github.com/asmrawa/vrchat-avatar-modding-skills/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![VRChat SDK3](https://img.shields.io/badge/VRChat-SDK3%20%7C%20MA%20%7C%20NDMF-purple.svg)](https://creators.vrchat.com/avatars/)
+
 [English](README.md) | **简体中文** | [日本語](README_JA.md)
 
 一套经过大量真实 VRChat 改模实战打磨的 **Agent Skills** + **Unity MCP** + **Blender MCP** 工具包，帮助 AI 安全、非破坏式地完成 Unity 换装、道具、表情开关、材质贴图、性能优化与 Blender 服装贴合重建。
@@ -20,6 +24,24 @@
 - **账号安全红线**：VRChat SDK 登录、密码、二步验证（2FA）与人机校验一律交由用户在 Unity 可见界面手动完成，绝不记录或代输凭据。
 
 ---
+
+## 工作流架构
+
+```mermaid
+flowchart LR
+    Client["AI 客户端 (Codex / Antigravity / Cursor)"] --> Mod["vrchat-avatar-modding"]
+    Client --> Audit["vrchat-project-audit-and-repair"]
+    Client --> Rebuild["vrchat-clothing-rebuild"]
+
+    Mod --> UnityMCP["AnkleBreaker Unity MCP"]
+    Audit --> UnityMCP
+    Mod --> OfflineCLI["Python / C# 工具 (审计 / UV 贴图 / 日志)"]
+    Rebuild --> BlenderMCP["MCP for Blender / 后台脚本"]
+    Rebuild --> UnityMCP
+
+    UnityMCP --> Work["隔离工作区 Assets/VRCWork/ + NDMF 验证"]
+    BlenderMCP --> Work
+```
 
 ## 包含的 3 个 Skills
 
@@ -44,7 +66,8 @@ vrchat-avatar-modding-skills/
 ├── unity-mcp/                            # 随包提供的 AnkleBreaker Unity MCP 插件 (2.32.0) 与服务端 (2.30.0)
 ├── blender-mcp/                          # 随包提供的 MCP for Blender (2.3.1 wheel 与插件脚本)
 ├── config/                               # MCP 配置示例（Codex、Antigravity / Cursor）
-├── scripts/                              # 全量 QA 校验脚本
+├── templates/                            # 通用跨会话改模交接模板（已脱敏）
+├── scripts/                              # 环境体检 doctor、全量 QA 校验与 Skill 打包脚本
 ├── tests/                                # Python 离线工具单元测试
 ├── install.ps1 / install.sh              # Windows / macOS / Linux 一键安装脚本
 └── THIRD_PARTY_NOTICES.md                # 完整的第三方开源归属与许可声明
@@ -76,6 +99,14 @@ chmod +x install.sh
 ```
 
 完成后重启客户端或新开会话即可生效。
+
+**一键环境体检（随时排查缺失依赖）：**
+
+```powershell
+python -X utf8 scripts/doctor.py
+```
+
+**跨多轮对话改模交接**：将 [`templates/AVATAR_HANDOFF_TEMPLATE.md`](templates/AVATAR_HANDOFF_TEMPLATE.md) 复制到你的私人工作目录，记录工作场景版本、衣柜参数与回退点，后续新开会话直接交给 AI 接力。
 
 ---
 
@@ -126,6 +157,8 @@ $wheel = Join-Path $toolkit 'blender-mcp/mcp_for_blender-2.3.1-py3-none-any.whl'
 
 虹膜重绘、分束挑染和刺绣纹样用 GPT Image 局部编辑；色阶映射、胸牌透明文字和图集底色清理用 Pillow。手册提供 API、宿主生图和纯提示词三种用法。出图后按原图遮罩合成、回读校验 Alpha，再到 Unity 检查材质和换装效果。[UV 贴图工作流](skills/vrchat-avatar-modding/references/ai-texture-generation.md)
 
+透明徽章文字可用原尺寸 RGBA 图层和 `composite --decal` 合成。用 `compare --require-visible-change` 检出只改了透明像素的候选图。手册补充了眼睛、发丝、发饰和服装在编辑器中的实测案例。
+
 ## 首次使用指令示例
 
 **只读体检（推荐首次使用先跑一次）：**
@@ -150,6 +183,9 @@ python scripts/validate_toolkit.py
 
 # 运行 Python 离线审计与贴图工具单元测试
 python -m unittest discover -s tests -v
+
+# 在 dist/ 中生成三个独立的 Skill 压缩包
+python -X utf8 scripts/package_skills.py
 ```
 
 ---

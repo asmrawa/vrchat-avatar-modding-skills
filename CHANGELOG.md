@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.1.0] - 2026-11-22
+
+### Added
+- **Expanded UV texture diagnostics & tooling**:
+  - Documented atlas registration for separate pupil sprites, expression-only eye regions (alternate irises, dizzy/square eyes, closed-eye lines, emission layers), geometry-guided hair root-to-tip gradients, occluding secondary material layers, and switchable badge meshes in `skills/vrchat-avatar-modding/references/ai-texture-generation.md`.
+  - Added renderer existence checks for empty hairstyle nodes (transform-only nodes with valid animation paths) in `skills/vrchat-project-audit-and-repair/references/avatar-integration-diagnostics.md`.
+  - Added opt-in `composite --decal` for transparent lettering and `compare --require-visible-change` in `vrc_texture_tool.py` while keeping all existing defaults and exit codes backward-compatible.
+- **Open-source engineering & DX upgrades**:
+  - Added `scripts/doctor.py` (with `--json` support) to check Python, Pillow, Node.js, Unity MCP deps, `uvx`, Blender, Unity Hub editors, and installed skills.
+  - Added `scripts/package_skills.py` to produce standalone licensed skill ZIPs into `dist/`.
+  - Added `templates/AVATAR_HANDOFF_TEMPLATE.md` for sanitized multi-session avatar modding handoffs.
+  - Added `.github/workflows/ci.yml` (Ubuntu + Windows CI matrix), `.github/ISSUE_TEMPLATE/` forms, `.gitattributes` (cross-platform LF/CRLF rules), and Mermaid workflow diagrams + status badges across English, Chinese, and Japanese READMEs.
+
 ## [1.0.0] - 2026-11-22
 
 ### Added

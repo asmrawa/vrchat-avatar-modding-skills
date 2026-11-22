@@ -1,0 +1,24 @@
+name: Feature or Workflow Request
+description: Propose a new VRChat modding workflow, guardrail, script improvement, or translation fix
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or Use Case
+      description: What VRChat modding workflow or recurring failure should this address?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed Solution
+      description: Describe the suggested skill rule, reference guide, or script behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Relevant Unity / VRChat SDK / Modular Avatar / NDMF / Blender details (no commercial files or private IDs).

@@ -1,5 +1,9 @@
 # VRChat Avatar Modding Skills & MCP Toolkit
 
+[![Toolkit QA & Tests](https://github.com/asmrawa/vrchat-avatar-modding-skills/actions/workflows/ci.yml/badge.svg)](https://github.com/asmrawa/vrchat-avatar-modding-skills/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![VRChat SDK3](https://img.shields.io/badge/VRChat-SDK3%20%7C%20MA%20%7C%20NDMF-purple.svg)](https://creators.vrchat.com/avatars/)
+
 **English** | [简体中文](README_CN.md) | [日本語](README_JA.md)
 
 Battle-tested **Agent Skills** + **Unity MCP** + **Blender MCP** toolkit for safe, non-destructive VRChat avatar modding in Unity and Blender.
@@ -20,6 +24,24 @@ This toolkit distills dozens of real-world VRChat avatar iterations into **3 foc
 - **Account safety**: SDK logins, passwords, 2FA, and CAPTCHAs are strictly handed off to you in Unity's visible VRChat SDK UI.
 
 ---
+
+## Architecture Overview
+
+```mermaid
+flowchart LR
+    Client["AI Client (Codex / Antigravity / Cursor)"] --> Mod["vrchat-avatar-modding"]
+    Client --> Audit["vrchat-project-audit-and-repair"]
+    Client --> Rebuild["vrchat-clothing-rebuild"]
+
+    Mod --> UnityMCP["AnkleBreaker Unity MCP"]
+    Audit --> UnityMCP
+    Mod --> OfflineCLI["Python / C# Helpers (Audit, UV, Logs)"]
+    Rebuild --> BlenderMCP["MCP for Blender / Background Python"]
+    Rebuild --> UnityMCP
+
+    UnityMCP --> Work["Isolated Assets/VRCWork/ + NDMF Verification"]
+    BlenderMCP --> Work
+```
 
 ## Included Skills
 
@@ -44,7 +66,8 @@ vrchat-avatar-modding-skills/
 ├── unity-mcp/                            # Bundled AnkleBreaker Unity MCP plugin (2.32.0) & server (2.30.0)
 ├── blender-mcp/                          # Bundled MCP for Blender (2.3.1 wheel + add-on)
 ├── config/                               # Example MCP configs (Codex, Antigravity / Cursor)
-├── scripts/                              # Automated QA validation scripts
+├── templates/                            # Sanitized multi-session avatar handoff template
+├── scripts/                              # Environment doctor, QA validator, and ZIP packager
 ├── tests/                                # Unit tests for bundled Python CLI tools
 ├── install.ps1 / install.sh              # One-click skill installers
 └── THIRD_PARTY_NOTICES.md                # Full upstream attributions and licenses
@@ -76,6 +99,14 @@ chmod +x install.sh
 ```
 
 Restart your client or start a new session afterwards.
+
+**Check your local prerequisites anytime:**
+
+```powershell
+python -X utf8 scripts/doctor.py
+```
+
+**Multi-session projects:** Copy [`templates/AVATAR_HANDOFF_TEMPLATE.md`](templates/AVATAR_HANDOFF_TEMPLATE.md) into your private workspace to track work scenes, wardrobe parameters, and rollback points across long modding runs.
 
 ---
 
@@ -126,6 +157,8 @@ $wheel = Join-Path $toolkit 'blender-mcp/mcp_for_blender-2.3.1-py3-none-any.whl'
 
 Use GPT Image to repaint iris interiors, strand highlights and embroidery. Use Pillow for tonal ramps, transparent badge lettering and gutter cleanup. The guide includes prompts for an Images API endpoint, a host image tool, or a prompt-only session. Composite under the original mask, verify alpha, then review the work material in Unity. [UV texture workflow](skills/vrchat-avatar-modding/references/ai-texture-generation.md)
 
+For transparent lettering use `composite --decal` with a source-sized RGBA layer. Use `compare --require-visible-change` to detect edits confined to transparent pixels. The workflow includes editor-verified eye, hair, accessory and garment cases.
+
 ## First Prompt Examples
 
 **Read-only audit (recommended first run):**
@@ -150,6 +183,9 @@ python scripts/validate_toolkit.py
 
 # Run unit tests for bundled Python CLI tools
 python -m unittest discover -s tests -v
+
+# Package the three skills as individual ZIP files in dist/
+python -X utf8 scripts/package_skills.py
 ```
 
 ---

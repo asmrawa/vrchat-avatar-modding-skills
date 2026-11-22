@@ -1,0 +1,17 @@
+# Normalize text line endings across Windows, macOS, and Linux
+* text=auto
+
+# Keep shell scripts LF so macOS/Linux execution never breaks on \r
+*.sh text eol=lf
+
+# Keep PowerShell scripts CRLF on Windows
+*.ps1 text eol=crlf
+
+# Explicitly mark binary assets
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.whl binary
+*.zip binary

@@ -18,3 +18,4 @@ desktop.ini
 
 # Local personal MCP configs (keep *.example.* tracked)
 config/*.local.*
+/dist/

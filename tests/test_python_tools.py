@@ -180,6 +180,30 @@ class TestTexturePostprocess(unittest.TestCase):
         self.assertEqual(res.returncode, 2)
         self.assertIn("outside_mask=1 | alpha_changed=1", res.stdout)
 
+    def test_decal_respects_glyph_holes_soft_edges_and_island_mask(self):
+        from PIL import Image
+
+        layer = Image.new("RGBA", self.original.size, (220, 160, 200, 255))
+        layer.putpixel((1, 0), (220, 160, 200, 128))
+        layer.putpixel((2, 0), (255, 0, 0, 0))
+        layer.save(self.edit)
+        result = self.cli("composite", self.src, self.edit, self.mask, self.out, "--decal")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        with Image.open(self.out) as actual:
+            expected = self.original.copy()
+            expected.putpixel((1, 0), (70, 85, 125, 173))
+            self.assertEqual(actual.tobytes(), expected.tobytes())
+
+    def test_decal_rejects_ambiguous_size_mode_and_empty_coverage(self):
+        from PIL import Image
+
+        for mode, size in (("RGBA", (2, 1)), ("RGB", (4, 2)), ("RGBA", (4, 2))):
+            with self.subTest(mode=mode, size=size):
+                Image.new(mode, size).save(self.edit)
+                self.assertEqual(self.cli("composite", self.src, self.edit, self.mask,
+                                          self.out, "--decal").returncode, 1)
+                self.assertFalse(self.out.exists())
+
     def test_cleanup_uses_source_alpha_and_never_overwrites(self):
         from PIL import Image
 
@@ -191,6 +215,55 @@ class TestTexturePostprocess(unittest.TestCase):
         previous = self.out.read_bytes()
         self.assertEqual(self.cli("clean-bg", self.src, self.edit, self.out).returncode, 1)
         self.assertEqual(self.out.read_bytes(), previous)
+
+    def test_visible_change_gate_ignores_transparent_padding(self):
+        edited = self.original.copy()
+        edited.putpixel((0, 0), (255, 255, 255, 0))
+        edited.save(self.edit)
+        self.assertEqual(self.cli("compare", self.src, self.edit).returncode, 0)
+        self.assertEqual(self.cli("compare", self.src, self.edit, "--require-visible-change").returncode, 2)
+        edited = self.original.copy()
+        edited.putpixel((1, 0), (21, 60, 100, 173))
+        edited.save(self.edit)
+        self.assertEqual(self.cli("compare", self.src, self.edit, "--mask", self.mask,
+                                  "--require-visible-change").returncode, 0)
+
+    def test_color_metadata_gate_detects_lost_profile_with_identical_pixels(self):
+        profile = b"synthetic ICC payload"
+        self.original.save(self.src, icc_profile=profile)
+        self.original.save(self.edit)
+        self.assertEqual(self.cli("compare", self.src, self.edit).returncode, 0)
+
+        result = self.cli("compare", self.src, self.edit, "--check-color-metadata")
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("PNG color metadata changed: icc_profile", result.stdout)
+
+        self.original.save(self.edit, icc_profile=profile)
+        result = self.cli("compare", self.src, self.edit, "--check-color-metadata")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_color_metadata_gate_detects_png_signal_changes(self):
+        from PIL.PngImagePlugin import PngInfo
+
+        tags = PngInfo()
+        tags.add(b"sRGB", b"\x00")
+        tags.add(b"gAMA", (45455).to_bytes(4, "big"))
+        tags.add(b"cHRM", b"".join(value.to_bytes(4, "big") for value in
+                                  (31270, 32900, 64000, 33000, 30000, 60000, 15000, 6000)))
+        self.original.save(self.src, pnginfo=tags)
+        self.original.save(self.edit)
+        result = self.cli("compare", self.src, self.edit, "--check-color-metadata")
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("chromaticity, gamma, srgb", result.stdout)
+
+    def test_color_metadata_gate_requires_png_and_accepts_untagged_pairs(self):
+        self.original.save(self.edit)
+        self.assertEqual(self.cli("compare", self.src, self.edit, "--check-color-metadata").returncode, 0)
+        self.original.save(self.edit, format="TIFF")
+        self.assertEqual(self.cli("compare", self.src, self.edit).returncode, 0)
+        result = self.cli("compare", self.src, self.edit, "--check-color-metadata")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("require PNG inputs", result.stderr)
 
     def test_cleanup_color_tolerance_and_same_color_island(self):
         from PIL import Image
@@ -342,6 +415,18 @@ class TestClothingInstallUnity(unittest.TestCase):
             self.assertIn('class VrcClothingRebuildOneShot', preview)
             self.assertIn('"My__Avatar"', preview)
             self.assertIn('"Avatar__Shirt"', preview)
+
+
+class TestDoctor(unittest.TestCase):
+    def test_doctor_json_reports_valid_schema(self):
+        res = run_script(ROOT / "scripts" / "doctor.py", "--json")
+        self.assertEqual(res.returncode, 0, msg=res.stderr)
+        payload = json.loads(res.stdout)
+        self.assertIn("platform", payload)
+        self.assertIn("checks", payload)
+        names = {item["name"] for item in payload["checks"]}
+        self.assertIn("Python (>= 3.10)", names)
+        self.assertIn("Installed Skills", names)
 
 
 if __name__ == "__main__":

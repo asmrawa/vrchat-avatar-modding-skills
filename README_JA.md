@@ -1,5 +1,9 @@
 # VRChat アバター改変 Skills & Unity / Blender MCP ツールキット
 
+[![Toolkit QA & Tests](https://github.com/asmrawa/vrchat-avatar-modding-skills/actions/workflows/ci.yml/badge.svg)](https://github.com/asmrawa/vrchat-avatar-modding-skills/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![VRChat SDK3](https://img.shields.io/badge/VRChat-SDK3%20%7C%20MA%20%7C%20NDMF-purple.svg)](https://creators.vrchat.com/avatars/)
+
 [English](README.md) | [简体中文](README_CN.md) | **日本語**
 
 VRChat アバター改変の実戦ノウハウを体系化した **Agent Skills** + **Unity MCP** + **Blender MCP** ツールキットです。Unity での着せ替え・ギミック導入・Expression Menu / FX 設定・マテリアル調整・軽量化から、Blender での体型に合わせた衣装リビルドまでを、安全かつ非破壊で自動化・支援します。
@@ -20,6 +24,24 @@ VRChat アバター改変の実戦ノウハウを体系化した **Agent Skills*
 - **アカウント安全境界**：VRChat SDK のログイン・パスワード・2FA・CAPTCHA は必ず Unity の公式 SDK パネル上でユーザー本人が操作する設計とし、認証情報をスクリプトやログに扱いません。
 
 ---
+
+## ワークフロー構成
+
+```mermaid
+flowchart LR
+    Client["AI クライアント (Codex / Antigravity / Cursor)"] --> Mod["vrchat-avatar-modding"]
+    Client --> Audit["vrchat-project-audit-and-repair"]
+    Client --> Rebuild["vrchat-clothing-rebuild"]
+
+    Mod --> UnityMCP["AnkleBreaker Unity MCP"]
+    Audit --> UnityMCP
+    Mod --> OfflineCLI["Python / C# 補助ツール (監査 / UV / ログ)"]
+    Rebuild --> BlenderMCP["MCP for Blender / バックグラウンド実行"]
+    Rebuild --> UnityMCP
+
+    UnityMCP --> Work["分離作業領域 Assets/VRCWork/ + NDMF 検証"]
+    BlenderMCP --> Work
+```
 
 ## 収録 Skills（全 3 種）
 
@@ -44,7 +66,8 @@ vrchat-avatar-modding-skills/
 ├── unity-mcp/                            # 同梱 AnkleBreaker Unity MCP プラグイン (2.32.0) ＆ サーバー (2.30.0)
 ├── blender-mcp/                          # 同梱 MCP for Blender (2.3.1 wheel ＆ アドオン)
 ├── config/                               # MCP 設定サンプル（Codex / Antigravity / Cursor）
-├── scripts/                              # 自動品質検証スクリプト
+├── templates/                            # 複数セッション引き継ぎテンプレート（汎用版）
+├── scripts/                              # 環境診断 doctor・自動品質検証・ZIP 生成スクリプト
 ├── tests/                                # 同梱 Python CLI ツール用ユニットテスト
 ├── install.ps1 / install.sh              # Windows / macOS / Linux ワンクリック導入スクリプト
 └── THIRD_PARTY_NOTICES.md                # サードパーティ権利表記・ライセンス一覧
@@ -76,6 +99,14 @@ chmod +x install.sh
 ```
 
 導入後、クライアントを再起動するか新しいセッションを開始してください。
+
+**環境セルフチェック（不足ツールを一覧確認）：**
+
+```powershell
+python -X utf8 scripts/doctor.py
+```
+
+**長期改変の引き継ぎテンプレート**：[`templates/AVATAR_HANDOFF_TEMPLATE.md`](templates/AVATAR_HANDOFF_TEMPLATE.md) をご自身のプライベート作業フォルダへコピーすると、バージョン履歴・着せ替えパラメータ・ロールバック先を新セッションへ正確に引き継げます。
 
 ---
 
@@ -126,6 +157,8 @@ $wheel = Join-Path $toolkit 'blender-mcp/mcp_for_blender-2.3.1-py3-none-any.whl'
 
 虹彩、髪のハイライト、刺繍の描き直しには GPT Image の部分編集を使います。階調変換、名札への透過文字の合成、UV アイランド間の余白の修復には Pillow を使います。API、ホスト内蔵の画像編集、プロンプトのみの各手順を収録しています。元画像のマスクで合成し、アルファ値を検証してから Unity で表示と着せ替えを確認します。[UV テクスチャ編集ガイド](skills/vrchat-avatar-modding/references/ai-texture-generation.md)
 
+名札の透過文字には元画像と同じサイズの RGBA レイヤーと `composite --decal` を使います。`compare --require-visible-change` で透明画素だけが変わった候補を検出できます。ガイドには目、髪、髪飾り、衣装をエディターで確認した事例もあります。
+
 ## 最初のプロンプト例
 
 **読み取り専用チェック（初回におすすめ）：**
@@ -150,6 +183,9 @@ python scripts/validate_toolkit.py
 
 # 同梱 Python CLI ツールのユニットテストを実行
 python -m unittest discover -s tests -v
+
+# dist/ に各スキルの ZIP を生成
+python -X utf8 scripts/package_skills.py
 ```
 
 ---

@@ -4,6 +4,8 @@ Start from the full-resolution base-color atlas used by the target material. A s
 
 ## Choose the operation
 
+On a disposable avatar, enable the target outfit and expression. Read the visible renderer's mesh, submesh index, shared material and texture property. Record the asset path or GUID, texture scale/offset, UV channel and any outline or secondary texture that samples the same design. Repeat after toggling away and back. If the mapping is ambiguous, put an asymmetric marker on a copied material and confirm its side and orientation in the scene before painting.
+
 | Requested change | Use | Detail to preserve |
 | --- | --- | --- |
 | Repaint iris depth, draw a new pupil interior, or design distinct eye patterns | GPT Image local edit on the original, then masked composite | Map atlas left and right to the wearer's eyes first. Lock the limbal ring, pupil silhouette, and main catchlights unless explicitly targeted. |
@@ -14,6 +16,21 @@ Start from the full-resolution base-color atlas used by the target material. A s
 | Remove specks in atlas gutters or restore a flat background | Pillow `clean-bg` using the original as the reference | Recover original padding RGB, even under zero alpha. Use a background mask where a color also appears inside an island. |
 
 For a badge, start with a transparent RGBA layer the size of the original. Draw the glyph or place the transparent icon at the measured coordinates. Multiply its alpha by the badge island mask, then use that coverage to composite layer RGB over source RGB. Restore the source alpha and run `compare`. Check the smallest readable text in the actual outfit and each badge toggle. Shared mirrored UVs can reverse lettering or put the same iris on both sides. Independent designs require independently addressable UVs or material slots.
+
+## Field cases and acceptance evidence
+
+The following observations come from saved project assets, pixel measurements and editor captures. Re-measure the islands and shader properties on each new avatar.
+
+| Symptom | Inspect and edit | Recorded verification |
+| --- | --- | --- |
+| Two clean pupils still show a star in the scene | Identify the two small pupil islands separately from the large irises. Register the edited pupil artwork to the destination UV landmarks and composite onto the destination eye atlas, preserving brows and expression sprites. Inspect the old secondary star pattern and emission on the assigned eye material. | A 1254-square edit was registered to a 4096-square atlas. Camera close-ups showed independent cool and warm pupils after removing the stale overlays. Reopening the scene confirmed the body renderer used the selected material. The painted detail remained limited by the preview resolution. |
+| An icy iris looks correct at rest but an expression reveals the older palette | Sample the expression and identify which alternate iris, spiral, square eye, eyelid line or dark-face emission is visible. Check the material and UV region at that frame. Give alternate regions their own masks and keep eye whites and nearby lashes protected. | The alternate-eye pass had dedicated iris and eyelid masks and editor expression captures. Later gesture tests exercised the expression menu and return to hand tracking. A menu transition alone cannot certify a pixel match. |
+| Rotated hair islands put a tip gradient near the scalp, or tinting erases strand contrast | Export UV triangles and corresponding posed vertex positions from the visible hair at rest. Measure root-to-tip progress per strand group and interpolate it across each triangle in UV space. Weight fringe and long locks separately. Apply the tint at source resolution, retaining source luminance and tapering chroma near gamut limits. Inspect shared UVs before assigning different colors. | A 4K hair edit preserved alpha, unused texels and mesh UVs. Its measured mean luminance error was about 0.19 on a 0–255 scale. Front, back and outline material properties were checked after prefab reload. These measurements describe that edit, not universal thresholds. |
+| Recoloring hair also repaints a clip or makes a flower glow | Locate the clip island on the original and protect its cutout, holes and padding. For a separate flower renderer, trace its material, emission and probe anchor in Unity before editing any pixels. | The clip repair used the original clip island. In the lighting case, seven imported flower/hair renderers referenced a donor prefab probe anchor. The work copy pointed them to the active chest and disabled the flower's emission; a built-clone check distinguished this from hair pigment. |
+| Recolored headwear loses the texture on the back | Inspect the back under neutral light with the second color layer toggled on the work material. When the source already contains the folds and trim, tint the original diffuse using shader tone controls. Prefer an existing authored clothing colorway when available. | A nearly opaque overlay had hidden the original shading. Three built-clone views and material readback confirmed the original print, corrected tone and disabled overlay, including after atlas packing. Animated outfit transitions require a separate check. |
+| Badge lettering is missing in one outfit state | Follow the selector through FX to each visible badge mesh before choosing its material. A tested outfit used three separate badge objects. A head-mounted letter accessory in a different outfit was fitted to its head bone and checked from the front and side. | These cases establish object selection and attachment. For newly painted letters use the synthetic-tested decal operation below, then inspect glyph orientation, holes and legibility on every intended badge variant in Unity. |
+
+If the neutral pose is correct and the defect appears only during an action, inspect FX material swaps and visibility first. Use a disposable NDMF clone when a merge, atlas pack or installer changes the result. Use Blender when different designs need separate UVs on shared faces or a posed garment needs geometry or weight changes. A color-only change on an independently addressable island can stay in the image and material workflow.
 
 ## Prepare both masks
 
@@ -35,8 +52,8 @@ api_mask.save("ApiMask.png")
 Use the same rendered English prompt and original atlas in all three modes. Confirm that the asset may be sent to the selected provider before using a remote editor. Run CLI examples from the skill directory.
 
 - **Mode A — compatible Images API.** Set `OPENAI_BASE_URL` to the intended API base including its version prefix (usually ending in `/v1`), and `OPENAI_IMAGE_MODEL` to an edit-capable model, or supply `--model`. Inject `OPENAI_API_KEY` through the environment for a live request. The standard-library client posts a PNG and optional alpha mask to `/images/edits` under that base. Dry-run validates local inputs without a key or network request. Remove `--dry-run` to generate. Both base64 PNG and HTTPS URL results are supported. [Images edit API](https://developers.openai.com/api/reference/resources/images/methods/edit)
-- **Mode B — host image editor.** Attach the original atlas to the host's image-edit tool (for example, `image_gen` or an image MCP). Supply the rendered prompt and the mask if supported, using the tool's stated mask convention. Label any style image as a reference only. Export the returned full atlas as a PNG preview.
-- **Mode C — prompt only.** Deliver one complete English prompt containing the filled common instructions and chosen task block below. Identify the original and mask to attach in ChatGPT or another GPT Image editor. Resume at compositing when the user returns the full atlas.
+- **Mode B — host image editor.** Attach the original atlas to the host's image-edit tool. Supply the rendered prompt and the mask if supported, using the tool's stated mask convention. Label any style image as a reference only. Export the returned full atlas as a PNG preview.
+- **Mode C — prompt only.** Deliver one complete English prompt containing the filled common instructions and chosen task block below. Identify the original and mask to attach in the selected image editor. Resume at compositing when the user returns the full atlas.
 
 ```sh
 python scripts/vrc_gpt_texture_edit.py --image Original.png --mask ApiMask.png --prompt-file Edit.txt --size auto --quality high --output Preview.png --dry-run
@@ -78,6 +95,15 @@ Use Python 3.10+ and Pillow with `Image.Resampling` support. The two new texture
 python scripts/vrc_texture_tool.py composite Original.png Preview.png Selection.png Candidate.png
 python scripts/vrc_texture_tool.py compare Original.png Candidate.png --mask Selection.png
 ```
+
+For transparent lettering, supply a source-sized RGBA overlay. Ordinary `composite` takes RGB from a full-atlas repaint and ignores candidate alpha. With `--decal`, glyph alpha multiplies the island selection and the output retains the original atlas alpha.
+
+```sh
+python scripts/vrc_texture_tool.py composite Original.png Lettering.png BadgeMask.png Badge.png --decal
+python scripts/vrc_texture_tool.py compare Original.png Badge.png --mask BadgeMask.png --require-visible-change
+```
+
+The optional comparison gate returns 2 when no selected pixel with nonzero source alpha changed RGB. Use it to catch an empty edit or a change confined to invisible gutter RGB. It does not measure perceptual sharpness or identify the correct UV island. Inspect native-scale landmarks and high-frequency detail separately.
 
 The tool resizes only the candidate RGB to source dimensions, blends it under the grayscale selection, restores the original alpha everywhere, writes a new PNG, and compares the decoded file. Require `outside_mask=0` and `alpha_changed=0`. Also confirm a nonzero intended change and inspect the in-mask artwork. Upsampling a 1024-pixel preview to a 4096-pixel atlas restores coordinates; the new paint still carries roughly 1024-pixel source detail. Protect high-frequency strands, original edges and tiny embroidery with a tighter mask or request a higher native resolution.
 

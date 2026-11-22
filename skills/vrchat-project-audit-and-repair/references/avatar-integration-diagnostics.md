@@ -47,4 +47,6 @@ Use this reference to route from an observed VRChat avatar symptom to its true r
 
 ## Evidence Quality
 
+When an old hairstyle toggle animates valid paths but shows no hair, compare the components on those exact objects across the last working and current scenes. One migration retained four active GameObjects with only Transform components. The earlier version had skinned renderers at the same paths. Check mesh, weighted bones, physics and the built renderer before proposing a toggle repair. A passing path lookup cannot establish that an object draws anything.
+
 Always report source state, NDMF-built state, reached Animator states, pose renders, and VRChat in-game tests separately. During offline pose rendering, verify geometry actually changed between frames so stale skinned-matrix caches do not produce identical images under different filenames.

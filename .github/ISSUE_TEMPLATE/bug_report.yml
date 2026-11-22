@@ -1,0 +1,47 @@
+name: Bug Report
+description: Report a bug in a skill, helper script, installer, or MCP setup guide
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting an issue! Please do **not** attach commercial avatar assets, Blueprint IDs (`avtr_...`), API keys, or raw Unity logs containing credentials.
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected Component
+      options:
+        - vrchat-avatar-modding
+        - vrchat-project-audit-and-repair
+        - vrchat-clothing-rebuild
+        - Python / C# helper scripts
+        - Installer / doctor / MCP setup
+        - Documentation (README / references)
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: |
+        - OS: Windows 11 / macOS / Linux
+        - AI Client: Codex / Antigravity / Cursor / Other
+        - Unity & VRChat SDK version: e.g. 2022.3.22f1 / SDK 3.10.x
+        - Python / Node / Blender version (if relevant):
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the expected behavior, actual behavior, and minimal steps to reproduce.
+    validations:
+      required: true
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy & Asset Check
+      options:
+        - label: I confirmed this report contains no commercial avatar files, Blueprint IDs, presigned URLs, or API keys.
+          required: true

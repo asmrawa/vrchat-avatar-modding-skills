@@ -32,7 +32,17 @@ def mask_for(path: Path, size: tuple[int, int]) -> Image.Image:
     return mask
 
 
-def compare(reference: Image.Image, candidate: Image.Image, mask: Image.Image | None) -> int:
+def png_color_metadata(path: Path) -> dict:
+    with Image.open(path) as image:
+        if image.format != "PNG":
+            raise ValueError(f"{path.name}: color metadata checks require PNG inputs")
+        image.load()
+        return {key: image.info[key] for key in ("icc_profile", "srgb", "gamma", "chromaticity")
+                if key in image.info}
+
+
+def compare(reference: Image.Image, candidate: Image.Image, mask: Image.Image | None,
+            require_visible_change: bool = False) -> int:
     if reference.size != candidate.size:
         print(f"Size changed: {reference.size} -> {candidate.size}")
         return 2
@@ -46,6 +56,14 @@ def compare(reference: Image.Image, candidate: Image.Image, mask: Image.Image | 
         protected = mask.point(lambda pixel: 255 if pixel == 0 else 0)
         outside = sum(ImageChops.multiply(protected, changed).histogram()[1:])
     print(f"{reference.width}x{reference.height} | changed={changed_pixels} | outside_mask={outside} | alpha_changed={alpha_pixels}")
+    if require_visible_change:
+        visible = reference.getchannel("A").point(lambda a: 255 if a else 0)
+        if mask is not None:
+            visible = ImageChops.multiply(visible, mask.point(lambda m: 255 if m else 0))
+        rgb_difference = ImageChops.lighter(ImageChops.lighter(red, green), blue)
+        if ImageChops.multiply(visible, rgb_difference).getbbox() is None:
+            print("No selected nontransparent source pixel changed RGB.")
+            return 2
     return 2 if alpha_pixels or outside else 0
 
 
@@ -84,6 +102,10 @@ def main() -> int:
     check.add_argument("source", type=Path)
     check.add_argument("candidate", type=Path)
     check.add_argument("--mask", type=Path, help="Grayscale mask. Black pixels must match exactly.")
+    check.add_argument("--require-visible-change", action="store_true",
+                       help="Require an RGB change where source alpha and selection are nonzero.")
+    check.add_argument("--check-color-metadata", action="store_true",
+                       help="Require matching PNG ICC, sRGB, gamma, and chromaticity metadata.")
     tint = commands.add_parser("recolor", help="Map source luminance to a tonal ramp inside a grayscale mask.")
     tint.add_argument("source", type=Path)
     tint.add_argument("mask", type=Path, help="Black preserves source, white applies ramp, gray blends.")
@@ -96,6 +118,8 @@ def main() -> int:
     merge.add_argument("candidate", type=Path)
     merge.add_argument("mask", type=Path)
     merge.add_argument("output", type=Path)
+    merge.add_argument("--decal", action="store_true",
+                       help="Blend a source-sized RGBA overlay using its alpha times the selection.")
     clean = commands.add_parser("clean-bg", help="Restore original background pixels on an edited atlas.")
     clean.add_argument("source", type=Path)
     clean.add_argument("candidate", type=Path)
@@ -113,7 +137,16 @@ def main() -> int:
         original = load(args.source, "RGBA")
         mask = mask_for(args.mask, original.size) if args.mask else None
         if args.command == "compare":
-            return compare(original, load(args.candidate, "RGBA"), mask)
+            candidate = load(args.candidate, "RGBA")
+            if args.check_color_metadata:
+                source_tags = png_color_metadata(args.source)
+                candidate_tags = png_color_metadata(args.candidate)
+                changed_tags = sorted(key for key in source_tags.keys() | candidate_tags.keys()
+                                      if source_tags.get(key) != candidate_tags.get(key))
+                if changed_tags:
+                    print(f"PNG color metadata changed: {', '.join(changed_tags)}")
+                    return 2
+            return compare(original, candidate, mask, args.require_visible_change)
         if args.output.suffix.lower() != ".png":
             raise ValueError("use a new .png output path")
         source_rgb = original.convert("RGB")
@@ -130,7 +163,15 @@ def main() -> int:
         else:
             if mask.getbbox() is None:
                 raise ValueError("the mask selects no pixels")
-            if args.command == "composite":
+            if args.command == "composite" and args.decal:
+                with Image.open(args.candidate) as layer:
+                    if layer.mode != "RGBA" or layer.size != original.size or layer.n_frames != 1:
+                        raise ValueError("--decal needs a single source-sized RGBA layer")
+                    mask = ImageChops.multiply(mask, layer.getchannel("A"))
+                    if mask.getbbox() is None:
+                        raise ValueError("decal has no coverage in the selection")
+                    edited = layer.convert("RGB")
+            elif args.command == "composite":
                 edited = aligned_rgb(args.candidate, original.size)
             else:
                 edited = ImageOps.colorize(ImageOps.grayscale(original), args.shadow, args.highlight, args.midtone)
