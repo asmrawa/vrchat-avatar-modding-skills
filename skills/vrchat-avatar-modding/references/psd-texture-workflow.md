@@ -1,6 +1,6 @@
 # PSD-First & AI-Assisted UV Texture Workflow
 
-Use the approved atlas or the source explicitly supplied for this edit. Prefer a registered PSD copy for layered deliverables. A quick PNG recolor or decal can start directly from the approved PNG even when a PSD exists. Keep the vendor PSD, original PNG exports, and source materials untouched as your rollback baseline, and isolate every revision in versioned files under `Assets/VRCWork/`.
+Use a versioned copy of the matching, editable PSD for local texture changes, including quick recolors and decals. Export from the work PSD even when Unity only needs a PNG. Keep the original PSD, exports, and materials as the rollback baseline. Stage the Unity assets under `Assets/VRCWork/`.
 
 ---
 
@@ -14,7 +14,7 @@ Use the approved atlas or the source explicitly supplied for this edit. Prefer a
 
 ## 2. Source Routing: PSD First, Flattened PNG Fallback
 
-When layering matters, look for a matching layered source in the project or supplied art package:
+Look for a matching layered source in the project or supplied art package. Use the approved PNG when no matching PSD is available, the available editor cannot preserve the relevant PSD layers, or the user explicitly requests a direct PNG edit. Call out the fallback when reporting the result. If the user requires a layered deliverable, report the missing source or editor as a blocker for that deliverable.
 
 1. **Verify PSD registration**: Compare the PSD composite against the **currently assigned PNG export** at native resolution. Match canvas dimensions, orientation, UV landmarks, line art, transparent margins, asymmetric details, and colorway. Equal pixel dimensions or a similar thumbnail alone do not prove registration—older PSDs or alternate vendor UVs can differ.
 2. **Route by available source and task**:
@@ -143,4 +143,7 @@ The [validation record](validation-workflows-and-results.md#texture-integration)
    ```
    Update both the renderer slot and any version-owned material-swap animation clips targeting that slot.
 3. **Animator & NDMF verification**: Drive actual Animator parameters on the preview clone's attached `Animator` through `default -> on -> off -> default` (testing all combinations when multiple toggles share a slot) and inspect an NDMF build clone when mergers or atlas packers participate.
-4. **Matched camera renders**: Capture before/after close-ups (front, three-quarter, profile, and back/dim lighting where relevant) with identical camera, pose, and lighting. Keep an output as a **Preview** if any pixel check, UV landmark, or material state fails; promote to **Production Candidate** only when all file checks, native-scale details, toggle transitions, and reload persistence pass.
+4. **Persisted references**. Save the work assets and reopen the material or scene. Confirm the effective material and texture references still resolve, including the states that swap them.
+5. **Matched camera renders**. Capture before/after views with identical camera, pose, and lighting. Include the back or dim lighting when relevant. Compare placement, proportion, occlusion, seams, and preserved detail against the baseline or reference. For a face-wide expression, check coverage across the face and whether the mark reads clearly under the bangs.
+
+Record pixel checks, Unity state checks, and visual review separately in the Markdown report. If the session cannot inspect images, complete the available mechanical checks, link any captured comparisons, and mark visual review as pending. If Unity cannot render the scene, report that separately. Keep an output as a **Preview** until the applicable file, state, persistence, and visual checks pass.

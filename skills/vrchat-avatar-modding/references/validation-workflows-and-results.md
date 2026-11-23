@@ -108,6 +108,8 @@ Keep the import scope with the evidence. The logged mesh rebuild covered the inn
 
 For each case, record the scope, version, baseline and candidate identifiers, check or command, expected result, observed result, evidence file, and evidence level. Use **Pass**, **Failed**, **Preview only**, **Blocked**, or **Not run**. Keep source and merged counts separate. A local NDMF run does not establish SDK upload or live behaviour. Game checks still include cold-join defaults, remote sync, contacts, PhysBone motion, world lighting, and per-outfit movement and clipping.
 
+Texture report example: `Texture integrity — Pass` with the pixel comparison, `FX state round-trip — Pass` with observed material bindings, and `Visual review — Not run (pending)` with the matched renders still awaiting inspection.
+
 Run repository release checks from the repository root when working on the toolkit. Record the exit code and test counts from that run.
 
 ```sh

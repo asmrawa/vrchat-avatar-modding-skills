@@ -2,7 +2,7 @@
 
 ## Texture Editing And Precise Position Offsets
 
-- **Textures, PSDs, decals, and UV recolors**: Always follow the unified [PSD-first & AI-assisted UV texture workflow](psd-texture-workflow.md) (prefer a registered PSD for layered work; use the approved PNG for direct pixel edits).
+- **Textures, PSDs, decals, and UV recolors** follow the [PSD-first UV texture workflow](psd-texture-workflow.md).
 - **Precise position offsets**: Record original and current values separately. Unity world up is `+Y`, while Inspector `localPosition` is in the parent's coordinate frame. Distinguish absolute offset from original vs. incremental delta from current, and convert units explicitly (in meter-scale Unity scenes, `0.005` = 5 mm). For skinned accessories, moving only the renderer Transform may not move visible geometry—locate a dedicated weighted bone chain or adjust the cloned work mesh instead, verifying no shared bone weights are affected.
 
 ## Local Fit Without Silently Shrinking The Body

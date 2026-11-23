@@ -57,12 +57,12 @@ flowchart LR
 ### 2. How Texture & PSD Editing Works (PSD-First Pipeline)
 Choose the editable source using [the UV texture guide](skills/vrchat-avatar-modding/references/psd-texture-workflow.md).
 1. **Locate the true texture in Unity**: Identify the exact renderer, submesh, material slot, shader properties (`_MainTex`, `_EmissionMap`, overlays), and any FX animation curves swapping materials on that slot.
-2. **Layered deliverable**. Prefer a versioned copy of a registered PSD. Compare its composite with the approved atlas and preserve existing line art, groups and masks.
-3. **Choose the operation**. For a direct PNG change, start with the approved atlas. Use Pillow for exact color or glyph edits and GPT Image for new artwork. Either can supply artwork for a PSD layer.
+2. **Use the matching PSD first**. Compare its composite with the atlas used in Unity. Edit a versioned copy and preserve existing line art, groups, and masks, even for PNG-only delivery.
+3. **Choose the operation**. Use the approved PNG if layered editing is unavailable or the user requests a direct PNG edit. Pillow can make precise color or glyph edits, and GPT Image can supply new artwork. Either can supply artwork for a PSD layer.
    - **Color / palette shift**: [`vrc_texture_tool.py`](skills/vrchat-avatar-modding/scripts/vrc_texture_tool.py) `recolor` maps source luminance to a new shadow/midtone/highlight ramp inside a grayscale mask.
    - **Transparent decals & lettering**: `vrc_texture_tool.py composite --decal` blends a source-sized RGBA layer through the island mask without creating opaque backing boxes.
    - **New painted art (irises, hair highlights, embroidery)**: [`vrc_gpt_texture_edit.py`](skills/vrchat-avatar-modding/scripts/vrc_gpt_texture_edit.py) (or a host image tool / prompt-only ChatGPT workflow) edits the original atlas using dual masks (an API guidance mask + a pixel-exact delivery mask). The result can be placed onto a new masked PSD layer or composited onto the PNG after `clean-bg` gutter cleanup.
-4. **Automated Pixel & Unity Verification**: `vrc_texture_tool.py compare` verifies exact dimensions, `outside_mask=0`, `alpha_changed=0`, visible RGB change, and PNG ICC/sRGB metadata before binding via `VrcMaterialSwap.cs` and testing on the avatar's attached `Animator` in Unity.
+4. **File, Unity, and visual checks**. Use `vrc_texture_tool.py compare` to verify dimensions, protected pixels, alpha, and color metadata. Test relevant states on the avatar's Animator and read back the saved references. Compare renders under matching conditions and mark visual review as pending if the images cannot be inspected.
 
 ### 3. Blender MCP & Clothing Rebuild (Experimental)
 This toolkit separates **Blender MCP** (a general bridge for mesh inspection, geometry analysis, and assisted vertex edits) from the experimental **automated garment rebuild** workflow ([`vrchat-clothing-rebuild`](skills/vrchat-clothing-rebuild/SKILL.md)):
@@ -201,7 +201,7 @@ chmod +x install.sh
 > Use `vrchat-avatar-modding`. Save a new versioned work scene under `Assets/VRCWork/`, integrate the imported outfit prefab with Modular Avatar while keeping original toggles working, check NDMF baked bones and the 256-bit parameter budget, and summarize what was verified.
 
 **3. Edit an avatar texture:**
-> Locate the visible material and its current atlas. Keep a layered source for future editing when requested. For this PNG edit, preserve protected pixels and alpha, and show a close-up of the result on the work material.
+> Locate the visible material and its current atlas. For this direct PNG edit, preserve protected pixels and alpha, and show a close-up of the result on the work material.
 
 **4. Experimental Blender garment test (opt-in, backup required):**
 > I have backed up my project and want to run an experimental `vrchat-clothing-rebuild` test. Inspect the target body and garment islands in Blender, generate 3-angle orthographic previews first, and wait for my manual review before importing anything into a Unity test scene.

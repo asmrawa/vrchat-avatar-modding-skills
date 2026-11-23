@@ -55,14 +55,14 @@ flowchart LR
 - **内置 C# 编辑器原语**：[`VrcAvatarIntegration.cs`](skills/vrchat-avatar-modding/scripts/VrcAvatarIntegration.cs) 与 [`VrcMaterialSwap.cs`](skills/vrchat-avatar-modding/scripts/VrcMaterialSwap.cs) 负责安全克隆剪辑与控制器、按属性白名单对齐材质受光、保持世界静止几何不变的骨骼重绑定，以及限定在工作目录内的材质贴图切换。
 
 ### 2. 改贴图 / 画图具体是怎么跑通的？
-按[贴图操作指南](skills/vrchat-avatar-modding/references/psd-texture-workflow.md)核对底图，再根据交付物选择编辑方式。
+按[贴图操作指南](skills/vrchat-avatar-modding/references/psd-texture-workflow.md)核对底图，找到与当前 Unity 贴图对应的可编辑源文件。
 1. **先在 Unity 定位真实生效的贴图**：找到实际渲染该部位的 Renderer、子网格、材质槽、Shader 贴图属性（如 `_MainTex`、`_EmissionMap`、叠加层、描边贴图），以及 FX 动画里是否对该槽位做了材质切换。
-2. **需要可继续编辑的分层文件时**，优先使用与当前底图吻合的 PSD，在版本副本上保留作者的分组、蒙版、线稿和阴影。
-3. **按任务选工具**。直接改 PNG 时从认可的底图开始。色阶或透明文字用 Pillow，新画虹膜、挑染或纹样用 GPT Image；两者的结果也可以放回 PSD 独立图层。
+2. **优先编辑匹配的 PSD**。即使只交付 PNG，也在 PSD 版本副本上改，保留原有分组、蒙版、线稿和阴影。
+3. **按任务选工具**。无法保留分层编辑，或用户明确要求直接改 PNG 时，使用已认可的底图。色阶或透明文字可用 Pillow，新画虹膜、挑染或纹样可用 GPT Image，两者也可为 PSD 独立图层提供素材。
    - **纯换色 / 改色阶**：用 [`vrc_texture_tool.py`](skills/vrchat-avatar-modding/scripts/vrc_texture_tool.py) 的 `recolor`，在灰度遮罩内按原图明度映射新的暗部/中间调/高光，100% 保留原有线条与轮廓。
    - **徽章 / 胸牌加透明文字或图标**：用 `vrc_texture_tool.py composite --decal`，将原尺寸透明 RGBA 图层乘以区域遮罩叠加到底图上，不产生白底方块。
    - **重绘复杂图案（新虹膜/瞳孔、发丝挑染、服装刺绣）**：用 [`vrc_gpt_texture_edit.py`](skills/vrchat-avatar-modding/scripts/vrc_gpt_texture_edit.py)（也支持宿主自带生图工具或纯 Prompt 手动发给 ChatGPT）配合双遮罩（API 引导遮罩 + 像素级保护遮罩）基于原图局部生成；出图后可作为独立蒙版图层贴回 PSD，或经 `clean-bg` 去底噪后用 `composite` 严格锁死遮罩外像素与原图 Alpha 合回原 PNG。
-4. **自动化校验与 Unity 上身验收**：运行 `vrc_texture_tool.py compare` 校验分辨率、保护区零改动（`outside_mask=0`）、透明度零变化（`alpha_changed=0`）、可见变化与 PNG ICC/sRGB 色彩标签，再通过 `VrcMaterialSwap.cs` 绑定到工作材质，用角色挂载的 Animator 实测所有状态切换与明暗光照表现。
+4. **检查文件、Unity 状态和画面**。用 `vrc_texture_tool.py compare` 校验尺寸、保护区像素、Alpha 和色彩标签。用角色的 Animator 实测相关状态并检查保存后的引用。用相同条件对比渲染图，无法看图时将视觉验收标为待确认。
 
 ### 3. Blender MCP 与服装重构（实验性）
 本工具包将**通用模型辅助工具（Blender MCP）**与**实验性自动服装重构（[`vrchat-clothing-rebuild`](skills/vrchat-clothing-rebuild/SKILL.md)）**明确区分：
@@ -201,7 +201,7 @@ chmod +x install.sh
 > 使用 `vrchat-avatar-modding`。先在 `Assets/VRCWork/` 下另存独立版本工作场景，用 Modular Avatar 整合刚导入的服装预制体并保留原衣开关，验证 NDMF 合并后的骨骼绑定与 256-bit 参数预算，最后汇报改动路径与已验证范围。
 
 **3. 修改眼睛 / 头发 / 衣服贴图：**
-> 使用 `vrchat-avatar-modding`。先查清实际显示的材质和底图。需要分层交付时保留可编辑 PSD。这次直接改 PNG，请验证遮罩外像素、Alpha 和色彩信息，再用工作材质给我看近景。
+> 使用 `vrchat-avatar-modding`。先查清实际显示的材质和底图。这次请直接改 PNG，验证遮罩外像素、Alpha 和色彩信息，再用工作材质给我看近景。
 
 **4. 实验性 Blender 服装重构测试（需先备份并人工检查）：**
 > 我已备份当前工程，准备用 `vrchat-clothing-rebuild` 跑一次实验性服装重构测试。先在 Blender 检查素体和服装网格岛，生成三视图正交预览给我人工确认，未确认前不要导入 Unity 正式场景。

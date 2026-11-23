@@ -55,14 +55,14 @@ flowchart LR
 - **同梱 C# ユーティリティ**：[`VrcAvatarIntegration.cs`](skills/vrchat-avatar-modding/scripts/VrcAvatarIntegration.cs) と [`VrcMaterialSwap.cs`](skills/vrchat-avatar-modding/scripts/VrcMaterialSwap.cs) により、クリップ/コントローラー複製、ライティング項目コピー、静止形状を保つバインドポーズ再計算、作業マテリアル限定のテクスチャ差し替えを安全に実行します。
 
 ### 2. テクスチャ・PSD 改変の仕組み（PSD 優先パイプライン）
-[UV 編集ガイド](skills/vrchat-avatar-modding/references/psd-texture-workflow.md)に従い、使用中の画像と納品形式を確認します。
+[UV 編集ガイド](skills/vrchat-avatar-modding/references/psd-texture-workflow.md)に従い、Unity で使用中の画像に対応する編集可能な元データを確認します。
 1. **Unity 上で実際に使われているテクスチャを特定**：対象部位を描画している Renderer、サブメッシュ、マテリアルスロット、シェーダープロパティ（`_MainTex`、`_EmissionMap`、重ね塗り・輪郭線テクスチャ）および FX のマテリアル切り替えを追跡します。
-2. **レイヤーを保持する場合**は、現行画像と一致する PSD のコピーを優先し、既存のグループ、マスク、線画、陰影を保持します。
-3. **目的に応じた編集**。PNG を直接編集するときは承認済みの画像を使います。色調変換や透過文字には Pillow、描き起こしには GPT Image を使い、結果を PSD のレイヤーにも配置できます。
+2. **対応する PSD を優先**します。納品が PNG のみでも、PSD の作業用コピーを編集し、既存のグループ、マスク、線画、陰影を保持します。
+3. **目的に応じた編集**。レイヤーを保った編集ができない場合や、PNG の直接編集を指定された場合は、承認済みの PNG を使います。色調変換や透過文字には Pillow、描き起こしには GPT Image を使い、結果を PSD のレイヤーにも配置できます。
    - **色変え・階調マップ**：[`vrc_texture_tool.py`](skills/vrchat-avatar-modding/scripts/vrc_texture_tool.py) の `recolor` で、グレースケールマスク内の明度を新しい影・中間・ハイライトへ変換します。
    - **透過文字・名札デカール**：`vrc_texture_tool.py composite --decal` で元サイズ RGBA レイヤーをアイランドマスク越しに合成します。
    - **新規描き起こし（虹彩・ハイライト・刺繍など）**：[`vrc_gpt_texture_edit.py`](skills/vrchat-avatar-modding/scripts/vrc_gpt_texture_edit.py)（ホスト内蔵画像ツールやプロンプトのみでの ChatGPT 利用にも対応）で 2 種類のマスク（API 誘導マスク＋厳密保護マスク）を使い元図から生成し、PSD の新規マスク付きレイヤーへ貼るか、`clean-bg` 後に `composite` で元 PNG へ無劣化合成します。
-4. **自動画素検証 ＆ Unity 実機確認**：`vrc_texture_tool.py compare` で解像度・マスク外変更ゼロ（`outside_mask=0`）・アルファ保持（`alpha_changed=0`）・可視変化・PNG の ICC/sRGB メタデータを検証した上で `VrcMaterialSwap.cs` により作業マテリアルへ適用し、アバター本体の Animator で全状態を確認します。
+4. **ファイル・Unity の状態・見た目を確認**します。`vrc_texture_tool.py compare` で画像の寸法、保護範囲の画素、アルファ、色メタデータを確認します。アバターの Animator で対象の状態を切り替え、保存後の参照を確認します。同じ条件でレンダリング結果を比較し、画像を確認できない場合は目視確認を保留と記録します。
 
 ### 3. Blender MCP と衣装リビルド（実験的機能）
 本ツールキットでは、**Blender MCP（モデル検査・補助編集ブリッジ）** と、実験的な**自動衣装リビルド手順（[`vrchat-clothing-rebuild`](skills/vrchat-clothing-rebuild/SKILL.md)）** を切り分けて扱います：
@@ -201,7 +201,7 @@ chmod +x install.sh
 > `vrchat-avatar-modding` を使ってください。`Assets/VRCWork/` に新しいバージョン別作業シーンを作成し、インポート済みの衣装プレハブを Modular Avatar で統合してください。元の衣装トグルを維持したまま、NDMF ビルド後のボーン結合と 256-bit 上限を検証して結果を報告してください。
 
 **3. テクスチャ編集：**
-> 使用中のマテリアルと元画像を確認してください。レイヤー納品には編集可能な PSD を使い、今回の PNG 編集では保護範囲の画素、アルファ値、色メタデータを確認して、作業用マテリアルの近接画像を見せてください。
+> 使用中のマテリアルと元画像を確認してください。今回は PNG を直接編集し、保護範囲の画素、アルファ値、色メタデータを確認して、作業用マテリアルの近接画像を見せてください。
 
 **4. 実験的な Blender 衣装リビルド検証（バックアップ・目視確認前提）：**
 > プロジェクトのバックアップ済みです。`vrchat-clothing-rebuild` で実験的な衣装リビルドを試したいので、まず Blender で素体と衣装のアイランドを確認して 3 方向プレビューを作成し、私の目視確認が終わるまで Unity への取り込みは待ってください。

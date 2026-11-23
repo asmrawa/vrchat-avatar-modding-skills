@@ -26,6 +26,8 @@ Load only the references relevant to the user's request before editing:
 | Work versions, checkpoints, `SaveAssetIfDirty`, NDMF re-entrancy guard, backups | [references/versioned-work-and-rollback.md](references/versioned-work-and-rollback.md) |
 | Independent Blueprint IDs, SDK build/upload triage, thumbnails, offline CLI tools | [references/publishing-and-offline-tools.md](references/publishing-and-offline-tools.md) |
 
+For texture edits, read the full PSD workflow before changing assets.
+
 ## Bundled Scripts
 
 - [scripts/VrcAvatarIntegration.cs](scripts/VrcAvatarIntegration.cs): Parameterized clip/controller cloning, float-allowlist material lighting copies, and rest-pose-preserving skin rebinding. Copy into a project `Assets/VRCWork/Editor/` folder only when needed.
@@ -50,7 +52,7 @@ Follow this loop unless the user only requested read-only research or review (us
 
 ## Core Safety Rules
 
-- **Use the matching layered source**: For texture edits, trace the active renderer slot through relevant states and verify the PSD against its current export. Keep a versioned PSD copy and use editable layers and masks for local changes.
+- **Use the matching layered source**: Verify the PSD against the atlas actually bound in Unity. When a matching PSD can be edited, make local changes in a versioned copy and export from it. Follow an explicit request to edit the PNG directly.
 - **Preserve hair gloss and art direction**: Treat a hair color or streak request as color-only unless the user asks to repaint the artwork. Retain the approved strand texture, outline, highlight position and shape, and shader lighting response. Compare matched Unity renders before accepting the edit.
 - **Work from verified facts**: Never infer toggle polarity, bone bindings, or shader properties from names alone; read animation curves, FX conditions, bone weights, and resolved components.
 - **Keep vendor assets intact**: Never edit or delete original vendor prefabs, FBX files, textures, controllers, or packages unless explicitly instructed.
@@ -84,3 +86,4 @@ Deliver:
 - Unmodified vendor source assets and preserved unrelated user changes.
 - Concise summary of parameter budget, baked bone check, default/radial sync, and visual/pose results.
 - Explicit separation between static checks, Unity-resolved checks, NDMF/SDK local build results, and unverified VRChat in-game behavior.
+- For visual edits, report the measured checks and the visual review separately. If the images cannot be inspected, link any captured comparisons and mark visual review as pending.
