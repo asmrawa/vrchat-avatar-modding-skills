@@ -23,7 +23,7 @@
 | **Expression Menu・パラメータ・FX 制御** | 独立トグル（`Bool`）、排他選択（`Int`）、連動制御（帽子着用時に耳を隠し脱ぐと復帰するなど）、手持ちアイテム排他、パラメータ名を壊さないメニュー翻訳、1 ページ 8 項目・同期パラメータ 256-bit 上限の自動監査。 |
 | **テクスチャ・PSD 改変（PSD 優先 + Pillow + GPT Image）** | レイヤー編集には位置が一致する PSD を使用。PNG を直接編集する場合は Pillow で階調や透過文字を処理し、描き起こしには GPT Image とマスク合成を使用します。 |
 | **ギミック・ライティング・軽量化** | 手持ちプロップ・Contact・Constraint の姿勢合わせ、`probeAnchor` やマテリアル受光の統一、重複 PhysBone・パーティクル上限・Mip Streaming・Write Defaults・SDK ビルド/アップロードエラーの切り分け。 |
-| **Blender での衣装シルエット再構築** | 体型変更に合わせて Blender バックグラウンドで衣装メッシュを素体へ投影リビルド（UV・マテリアル・ウェイトを保持）、3 方向平行投影プレビュー生成、承認後の Unity ワンショット取り込み。 |
+| **Blender 補助操作 ＆ 衣装リビルド（実験的）** | メッシュ検査・構造確認・補助編集用に Blender MCP を搭載。実験的機能として、UV・ウェイトを保持して胴体フィットを再構築する `vrchat-clothing-rebuild`（明示指定時のみ）を同梱していますが、貫通・動的ポーズの目視確認が必要です。 |
 | **読み取り専用監査 ＆ 安全修復** | ファイルを一切変更せずにシーン・Prefab オーバーライド・GUID/fileID 参照・Animator カーブ・NDMF ビルド出力を調査し、明示指示時のみ作業領域内で最小限の修復と参照ゼロ資産のクリーンアップを実行。 |
 
 ---
@@ -35,7 +35,7 @@ flowchart LR
     User["改変の指示"] --> Client["AI クライアント (Codex / Antigravity / Cursor)"]
     Client --> S1["Skill 1: vrchat-avatar-modding"]
     Client --> S2["Skill 2: vrchat-project-audit-and-repair"]
-    Client --> S3["Skill 3: vrchat-clothing-rebuild"]
+    Client --> S3["Skill 3: vrchat-clothing-rebuild (実験的)"]
 
     S1 --> UMCP["Unity MCP ブリッジ"]
     S2 --> UMCP
@@ -64,11 +64,19 @@ flowchart LR
    - **新規描き起こし（虹彩・ハイライト・刺繍など）**：[`vrc_gpt_texture_edit.py`](skills/vrchat-avatar-modding/scripts/vrc_gpt_texture_edit.py)（ホスト内蔵画像ツールやプロンプトのみでの ChatGPT 利用にも対応）で 2 種類のマスク（API 誘導マスク＋厳密保護マスク）を使い元図から生成し、PSD の新規マスク付きレイヤーへ貼るか、`clean-bg` 後に `composite` で元 PNG へ無劣化合成します。
 4. **自動画素検証 ＆ Unity 実機確認**：`vrc_texture_tool.py compare` で解像度・マスク外変更ゼロ（`outside_mask=0`）・アルファ保持（`alpha_changed=0`）・可視変化・PNG の ICC/sRGB メタデータを検証した上で `VrcMaterialSwap.cs` により作業マテリアルへ適用し、アバター本体の Animator で全状態を確認します。
 
-### 3. Blender 衣装リビルドの仕組み
-体型変更で大きく干渉する衣装向け（[`vrchat-clothing-rebuild`](skills/vrchat-clothing-rebuild/SKILL.md)）：
-1. [`fit_clothing.py`](skills/vrchat-clothing-rebuild/scripts/fit_clothing.py) が Blender バックグラウンドで素体メッシュへ衣装シェルをレイキャスト投影し、装飾パーツを KD-Tree で追従させ、頂点順・UV・マテリアル・ウェイトを保ったまま正面・側面・斜めの 3 方向プレビューを書き出します。
-2. プレビュー承認後、[`install_unity.py`](skills/vrchat-clothing-rebuild/scripts/install_unity.py) が作業シーンをバックアップして Unity ワンショット取り込みスクリプトを配置し、元 FBX の UV とスキニングを引き継いだ作業メッシュを生成・適用します。
-3. GUI 無しで Blender MCP を起動できる [`blender_mcp_headless.py`](skills/vrchat-clothing-rebuild/scripts/blender_mcp_headless.py) も同梱しています。
+### 3. Blender MCP と衣装リビルド（実験的機能）
+本ツールキットでは、**Blender MCP（モデル検査・補助編集ブリッジ）** と、実験的な**自動衣装リビルド手順（[`vrchat-clothing-rebuild`](skills/vrchat-clothing-rebuild/SKILL.md)）** を切り分けて扱います：
+
+- **現在の実装状況**：
+  1. **Blender MCP**：Blender 内のオブジェクト確認、メッシュアイランド解析、部分的な補助編集を行うオプション拡張として利用できます（[`blender_mcp_headless.py`](skills/vrchat-clothing-rebuild/scripts/blender_mcp_headless.py) によるヘッドレス起動にも対応）。
+  2. **実験的リビルドフロー**：[`fit_clothing.py`](skills/vrchat-clothing-rebuild/scripts/fit_clothing.py) がレイキャスト投影と KD-Tree で胴体・装飾を調整し、3 方向プレビューを生成します。[`install_unity.py`](skills/vrchat-clothing-rebuild/scripts/install_unity.py) により UV・マテリアル・ウェイトを保持したまま Unity へ再取り込みするテストにも成功しています。
+- **現在の技術的制約**：
+  - **完全な衝突解決は未対応**：主にレイキャスト投影で頂点を調整するため、素体との非交差を完全には保証できません。
+  - **動的ポーズでの貫通リスク**：静止状態で問題がなくても、腕上げ・しゃがみ・脚上げ等のモーションで貫通が生じる場合があります。
+  - **適用範囲の限定**：特定ローカル座標系（`X` 横、`Y` 上、`+Z` 前）の胴体衣装が対象で、Unity インポーターは単一サブメッシュ（`subMeshCount == 1`）のみ対応しています。
+  - **自動修復機構の不足**：出力後に手動での調整・修正が必要になるケースがあります。
+  - **技術的取り込み完了 ≠ 見た目の合格**：UV とウェイトが正常に引き継がれても、すべてのアバター・衣装で実戦投入できる見た目を保証するものではありません。
+- **利用上の推奨**：Blender MCP は補助ツールとして活用できますが、自動衣装リビルドを通常・本番のデフォルト手順として使うことは推奨しません。普段の改変は **Unity MCP + Modular Avatar + NDMF + 対応済み衣装** を優先し、`vrchat-clothing-rebuild` は**プロジェクトをバックアップした上で実験的検証を明示希望し、結果を人間が目視確認できる場合のみ**使用してください。
 
 ### 4. アカウント・アップロード安全設計
 - ローカルビルド・プレビュー・オンラインアップロードは明確に分離し、明示的な依頼なしにアップロードや Blueprint ID 変更を行いません。
@@ -87,7 +95,7 @@ flowchart LR
 | **Pillow（`pip install pillow`）** | Pillow ツール使用時のみ | `vrc_texture_tool.py`（`recolor` / `composite` / `clean-bg` / `compare`）に必要。 |
 | **Photoshop 等 PSD エディタ（または `psd-tools`）** | PSD 編集時に推奨 | レイヤー保持状態での `.psd` 編集と書き出し。 |
 | **OpenAI 互換 Images API キー** | 任意（API 直接生成時） | `vrc_gpt_texture_edit.py` で直接 API を叩く場合のみ環境変数で指定。ホスト画像ツールやプロンプト運用では不要。 |
-| **Blender + `uv`（`uvx`）** | 任意（メッシュ・衣装） | 衣装リビルドは Blender 単体で実行できます。uvx は同梱の MCP サーバー用です。 |
+| **Blender + `uv`（`uvx`）** | 任意（検査 / 実験的リビルド） | モデル検査や実験的リビルドは Blender 単体で実行可能。uvx は同梱 Blender MCP サーバー起動時のみ必要です。 |
 
 リポジトリルートで以下のコマンドを実行すると、不足ツールと導入手順を一覧チェックできます：
 
@@ -103,14 +111,14 @@ python -X utf8 scripts/doctor.py
 | --- | --- | --- |
 | **`vrchat-avatar-modding`** | 改変全般：着せ替え、ワードローブ、メニュー/FX、ギミック、PSD/AI テクスチャ、ライティング・フィット、軽量化、SDK ビルド切り分け | [`skills/vrchat-avatar-modding/SKILL.md`](skills/vrchat-avatar-modding/SKILL.md) |
 | **`vrchat-project-audit-and-repair`** | 読み取り専用 3 層監査（静的 YAML/GUID・Unity MCP・`-batchmode`・NDMF ビルド）＋明示許可時の安全修復・クリーンアップ | [`skills/vrchat-project-audit-and-repair/SKILL.md`](skills/vrchat-project-audit-and-repair/SKILL.md) |
-| **`vrchat-clothing-rebuild`** | Blender 衣装シルエット再構築、3 方向プレビュー、UV・ウェイト保持の Unity 再取り込み | [`skills/vrchat-clothing-rebuild/SKILL.md`](skills/vrchat-clothing-rebuild/SKILL.md) |
+| **`vrchat-clothing-rebuild`** | *（実験的 / 明示指定時のみ）* Blender 衣装シルエット再構築・Unity 再取り込み（通常ワークフローでの既定利用は非推奨） | [`skills/vrchat-clothing-rebuild/SKILL.md`](skills/vrchat-clothing-rebuild/SKILL.md) |
 
 ```text
 vrchat-avatar-modding-skills/
 ├── skills/
 │   ├── vrchat-avatar-modding/            # 改変メインフロー + リファレンス 10 本 + C#/Python スクリプト 7 本
 │   ├── vrchat-project-audit-and-repair/  # 3 層読み取り専用監査 + 症状診断 + 安全修復チェックリスト
-│   └── vrchat-clothing-rebuild/          # Blender リビルドパイプライン + Unity 反映器 + ヘッドレス起動器
+│   └── vrchat-clothing-rebuild/          # 実験的 Blender リビルド手順 + Unity 反映器 + ヘッドレス起動器
 ├── unity-mcp/                            # 同梱 AnkleBreaker Unity MCP プラグイン (2.32.0) ＆ サーバー (2.30.0)
 ├── blender-mcp/                          # 同梱 MCP for Blender (2.3.1 wheel ＆ アドオン)
 ├── assets/                               # プロジェクトアイコン
@@ -195,8 +203,8 @@ chmod +x install.sh
 **3. テクスチャ編集：**
 > 使用中のマテリアルと元画像を確認してください。レイヤー納品には編集可能な PSD を使い、今回の PNG 編集では保護範囲の画素、アルファ値、色メタデータを確認して、作業用マテリアルの近接画像を見せてください。
 
-**4. Blender での衣装シルエット再構築：**
-> `vrchat-clothing-rebuild` を使ってください。Blender で素体と衣装のメッシュアイランドを確認し、3 方向プレビュー付きでリビルド設定を作成してください。プレビューを確認してから Unity への取り込みを実行してください。
+**4. 実験的な Blender 衣装リビルド検証（バックアップ・目視確認前提）：**
+> プロジェクトのバックアップ済みです。`vrchat-clothing-rebuild` で実験的な衣装リビルドを試したいので、まず Blender で素体と衣装のアイランドを確認して 3 方向プレビューを作成し、私の目視確認が終わるまで Unity への取り込みは待ってください。
 
 > **長期改変の引き継ぎ**：[`templates/AVATAR_HANDOFF_TEMPLATE.md`](templates/AVATAR_HANDOFF_TEMPLATE.md) をプライベートフォルダにコピーしてバージョン履歴や着せ替えパラメータを控えておくと、新しいセッションでもスムーズに引き継げます。
 

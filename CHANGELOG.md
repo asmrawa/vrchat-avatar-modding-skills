@@ -1,5 +1,9 @@
 # Changelog
 
+## [Unreleased]
+
+- Repositioned `vrchat-clothing-rebuild` as an **experimental, opt-in** helper across English, Chinese, and Japanese READMEs, `skills/vrchat-clothing-rebuild/SKILL.md`, `agents/openai.yaml`, and `skills/vrchat-avatar-modding/SKILL.md`—preserving Blender MCP for mesh inspection/assisted edits while keeping **Unity MCP + Modular Avatar + NDMF** as the recommended default workflow and documenting ray-cast, dynamic clipping, coordinate/submesh, and manual visual-review limitations.
+
 ## [1.3.0] - 2026-11-23
 
 ### Added

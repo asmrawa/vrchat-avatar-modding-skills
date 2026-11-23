@@ -1,15 +1,19 @@
 ---
 name: vrchat-clothing-rebuild
-description: "Rebuild torso-fitted VRChat avatar clothing in Blender for changed body shapes, preserve UVs/materials/weights, and import back into Unity with verified mesh and animation bindings."
+description: "Experimental opt-in workflow to rebuild torso-fitted VRChat avatar clothing in Blender, preserve UVs/materials/weights, and test re-import into Unity. Use only when explicitly requested for experimental mesh fitting; prefer Unity/Modular Avatar workflows by default."
 ---
 
-# VRChat Clothing Rebuild
+# VRChat Clothing Rebuild (Experimental)
 
-Use this workflow when an already-rigged garment needs a reconstructed torso silhouette for a modified body shape (beyond small local cuff/hem tweaks). Inspect the live scene, mesh islands, body shape, and garment details before defining the rebuild region.
+> **Experimental / Opt-In Only**: Do **not** recommend or invoke this workflow as the default avatar-modding path. Prefer Unity + Modular Avatar + NDMF + vendor-adapted outfits first. Use `vrchat-clothing-rebuild` only when the user explicitly asks for an experimental Blender rebuild, has a project backup, and understands that manual visual and dynamic-pose inspection is required.
 
-**Scope & assumptions**:
-- The bundled Blender fitting script assumes garment-local coordinates use **X across the body, Y upward, and +Z forward** in the measured source mesh. Other orientations require transforming coordinates or choosing a different projection method.
-- The bundled Unity importer currently targets single-submesh garments (`subMeshCount == 1`). Multi-material garments need per-submesh triangle preservation before running.
+Use this experimental helper when an already-rigged torso garment needs a surface-projection test for a modified body shape. Inspect the live scene, mesh islands, body shape, and garment details before defining the rebuild region.
+
+**Known limitations & scope**:
+- **No full collision solver**: Ray casting adjusts surface vertices outward from a torso origin, which cannot guarantee zero body-garment intersection on complex silhouettes.
+- **Dynamic clipping risk**: A clean static rest-pose check does not guarantee zero clipping during raised arms, crouching, sitting, or high-leg animations.
+- **Coordinate & submesh constraints**: `fit_clothing.py` assumes garment-local **X across, Y up, +Z forward**, and the Unity importer requires single-submesh garments (`subMeshCount == 1`).
+- **No automatic repair & manual acceptance required**: Technical import success (mapped vertices, preserved UVs, bone weights, bind poses) does not equal visually deliverable quality—always inspect poses manually in Unity and VRChat.
 
 ## Workflow
 

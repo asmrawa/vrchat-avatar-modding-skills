@@ -23,7 +23,7 @@
 | **表情菜单、参数与 FX 开关** | 制作独立开关（`Bool`）、多选互斥（`Int`）、条件联动（如戴帽自动收耳、换回其他套装自动恢复）、手持道具互斥、仅翻译菜单显示文案而不破坏参数名，并自动核验每页 8 项与 256-bit 同步参数上限。 |
 | **画图与贴图编辑（PSD 优先 + Pillow + GPT Image）** | 匹配的 PSD 适合保留分层。直接改 PNG 时可用 Pillow 做局部换色、透明徽章贴字和边距清理；需要新画虹膜、挑染或刺绣时用 GPT Image 局部编辑，再按遮罩合回。 |
 | **道具、受光、微调与性能优化** | 校准手持道具握点、Contact 与约束；统一不同服装材质的受光下限与 `probeAnchor` 探针锚点；审计重复 PhysBone、粒子峰值容量、Mip Streaming、Write Defaults 以及 SDK 本地构建/上传报错。 |
-| **Blender 体型服装贴合重建** | 当角色体型改变、衣服单靠缩放或调骨已经贴不上时，在 Blender 后台自动投影重建躯干曲面并输出三视图预览，确认后一键回灌 Unity，完整保留原 FBX 的 UV、材质与蒙皮权重。 |
+| **Blender 模型检查与服装重构（实验性）** | 保留 Blender MCP 用于模型检查、网格分析与局部辅助编辑；另附实验性躯干重构流程 `vrchat-clothing-rebuild`（仅限手动显式启用），可保留 UV 与蒙皮权重回灌 Unity，但需人工复核穿模与动态姿态。 |
 | **只读项目审计与安全修复** | 默认只读不改文件，帮你查清场景、Prefab 覆盖、GUID/fileID 引用链、菜单/FX 动画绑定以及 NDMF 合并后的真实结果；只有在你明确要求时才在隔离工作区执行最小范围修复与无引用文件清理。 |
 
 ---
@@ -35,7 +35,7 @@ flowchart LR
     User["你的改模需求"] --> Client["AI 客户端 (Codex / Antigravity / Cursor)"]
     Client --> S1["Skill 1: vrchat-avatar-modding"]
     Client --> S2["Skill 2: vrchat-project-audit-and-repair"]
-    Client --> S3["Skill 3: vrchat-clothing-rebuild"]
+    Client --> S3["Skill 3: vrchat-clothing-rebuild (实验性)"]
 
     S1 --> UMCP["Unity MCP 桥接"]
     S2 --> UMCP
@@ -64,11 +64,19 @@ flowchart LR
    - **重绘复杂图案（新虹膜/瞳孔、发丝挑染、服装刺绣）**：用 [`vrc_gpt_texture_edit.py`](skills/vrchat-avatar-modding/scripts/vrc_gpt_texture_edit.py)（也支持宿主自带生图工具或纯 Prompt 手动发给 ChatGPT）配合双遮罩（API 引导遮罩 + 像素级保护遮罩）基于原图局部生成；出图后可作为独立蒙版图层贴回 PSD，或经 `clean-bg` 去底噪后用 `composite` 严格锁死遮罩外像素与原图 Alpha 合回原 PNG。
 4. **自动化校验与 Unity 上身验收**：运行 `vrc_texture_tool.py compare` 校验分辨率、保护区零改动（`outside_mask=0`）、透明度零变化（`alpha_changed=0`）、可见变化与 PNG ICC/sRGB 色彩标签，再通过 `VrcMaterialSwap.cs` 绑定到工作材质，用角色挂载的 Animator 实测所有状态切换与明暗光照表现。
 
-### 3. Blender 贴身服装重建是怎么实现的？
-针对体型大幅改动后穿模严重的衣服（[`vrchat-clothing-rebuild`](skills/vrchat-clothing-rebuild/SKILL.md)）：
-1. [`fit_clothing.py`](skills/vrchat-clothing-rebuild/scripts/fit_clothing.py) 在 Blender 后台模式运行，将服装主壳体按可调间隙射线投影到目标素体表面（领口/袖口/腰部平滑过渡），用 KD-Tree 同步带动纽扣、皮带等分离饰件，自动渲染正面、侧面、四分之三正交预览图，同时严格保留原顶点顺序、UV、材质槽和顶点组。
-2. 你确认预览图无误后，[`install_unity.py`](skills/vrchat-clothing-rebuild/scripts/install_unity.py) 自动备份工作场景并投递一次性 Unity C# 导入脚本，自动匹配顶点（含 X 轴镜像检测）、迁移原 FBX 的 UV 和蒙皮权重生成新的工作网格资产并保存。
-3. 附带 [`blender_mcp_headless.py`](skills/vrchat-clothing-rebuild/scripts/blender_mcp_headless.py)，支持在不弹 Blender 界面的后台模式直接启动 Blender MCP。
+### 3. Blender MCP 与服装重构（实验性）
+本工具包将**通用模型辅助工具（Blender MCP）**与**实验性自动服装重构（[`vrchat-clothing-rebuild`](skills/vrchat-clothing-rebuild/SKILL.md)）**明确区分：
+
+- **当前已实现的能力**：
+  1. **Blender MCP**：作为可选辅助扩展，让 AI 连接 Blender 执行模型检查、网格分析及部分辅助顶点编辑（支持通过 [`blender_mcp_headless.py`](skills/vrchat-clothing-rebuild/scripts/blender_mcp_headless.py) 无界面运行）。
+  2. **实验性服装重构流程**：[`fit_clothing.py`](skills/vrchat-clothing-rebuild/scripts/fit_clothing.py) 通过射线投影调整躯干主壳体并用 KD-Tree 同步带动装饰件，生成三视图正交预览；[`install_unity.py`](skills/vrchat-clothing-rebuild/scripts/install_unity.py) 已验证可在保留 UV、材质和蒙皮权重的条件下回灌 Unity。
+- **当前技术局限（重要）**：
+  - **缺乏完整碰撞处理**：主要依赖射线投影调整顶点，无法保证重构后的服装与身体完全不相交。
+  - **动态穿模风险**：即使静止姿态正常，抬手、蹲下、抬腿等动作时仍可能穿模。
+  - **适用范围有限**：当前主要针对特定局部坐标系（`X` 横向、`Y` 向上、`+Z` 朝前）下的躯干服装，且 Unity 导入器暂不支持多子网格服装（要求 `subMeshCount == 1`）。
+  - **缺少自动修复机制**：即使导入成功，通常仍需人工检查和手工微调。
+  - **工程成功不等于视觉可交付**：UV、蒙皮与引用完整，不代表不同模型与复杂服装的最终外观已达到交付标准。
+- **使用建议**：Blender MCP 可作为可选的模型检查与辅助编辑工具保留；但**不建议**将自动服装重构用于日常或正式改模工作流。正式改模默认优先使用 **Unity MCP + Modular Avatar + NDMF + 原厂适配服装**；只有在你**明确要求实验性重构、已备份工程且会人工复核效果**时，才使用 `vrchat-clothing-rebuild`。
 
 ### 4. 账号与上传安全边界
 - 本地构建、预览与线上上传完全分离，未获你明确要求绝不触发 SDK 上传或修改 Blueprint ID。
@@ -87,7 +95,7 @@ flowchart LR
 | **Pillow（`pip install pillow`）** | 使用 Pillow 工具时需要 | `vrc_texture_tool.py` 依赖它进行遮罩换色、透明合成、去底噪与像素/ICC 校验。 |
 | **Photoshop / PSD 编辑器（或 `psd-tools`）** | 改 PSD 时推荐 | 用于直接编辑保留分层的 `.psd` 源文件并导出 PNG。 |
 | **OpenAI 兼容 Images API Key** | 选配（仅 API 直出） | 仅在使用 `vrc_gpt_texture_edit.py` 直连 API 时通过环境变量提供；用宿主自带生图或纯 Prompt 模式不需要。 |
-| **Blender + `uv`（`uvx`）** | 选配（改网格/衣服） | Blender 可直接运行服装重建脚本；使用随包提供的 MCP 服务端才需要 uvx。 |
+| **Blender + `uv`（`uvx`）** | 选配（模型检查 / 实验性重构） | Blender 可直接运行检查与实验性贴合脚本；使用随包提供的 Blender MCP 服务端才需要 uvx。 |
 
 可以随时在仓库根目录运行一键环境体检，看看本机缺什么以及对应的安装命令：
 
@@ -103,14 +111,14 @@ python -X utf8 scripts/doctor.py
 | --- | --- | --- |
 | **`vrchat-avatar-modding`** | 主力改模：换装、衣柜、菜单/FX 开关、道具、PSD/AI 贴图、受光与贴合、性能优化、SDK 打包排错 | [`skills/vrchat-avatar-modding/SKILL.md`](skills/vrchat-avatar-modding/SKILL.md) |
 | **`vrchat-project-audit-and-repair`** | 只读体检与排错（静态 YAML/GUID、Unity MCP、离线 `-batchmode`、NDMF 构建态）+ 明确授权下的最小安全修复与清理 | [`skills/vrchat-project-audit-and-repair/SKILL.md`](skills/vrchat-project-audit-and-repair/SKILL.md) |
-| **`vrchat-clothing-rebuild`** | Blender 躯干贴合重塑、三视图正交预览与 Unity 保留蒙皮一键回灌 | [`skills/vrchat-clothing-rebuild/SKILL.md`](skills/vrchat-clothing-rebuild/SKILL.md) |
+| **`vrchat-clothing-rebuild`** | *（实验性 / 仅限手动指定）* Blender 躯干贴合重塑、三视图预览与 Unity 回灌——不建议作为默认正式改模流程 | [`skills/vrchat-clothing-rebuild/SKILL.md`](skills/vrchat-clothing-rebuild/SKILL.md) |
 
 ```text
 vrchat-avatar-modding-skills/
 ├── skills/
 │   ├── vrchat-avatar-modding/            # 主力改模流程 + 10 篇专题手册 + 7 个 C#/Python 脚本
 │   ├── vrchat-project-audit-and-repair/  # 三层只读审计 + 症状分流 + 安全修复校验
-│   └── vrchat-clothing-rebuild/          # Blender 重建脚本 + Unity 回灌器 + 无头 MCP 启动器
+│   └── vrchat-clothing-rebuild/          # 实验性 Blender 重建脚本 + Unity 回灌器 + 无头 MCP 启动器
 ├── unity-mcp/                            # 内置 AnkleBreaker Unity MCP 插件 (2.32.0) 与服务端 (2.30.0)
 ├── blender-mcp/                          # 内置 MCP for Blender (2.3.1 wheel 与插件脚本)
 ├── assets/                               # 项目图标
@@ -195,8 +203,8 @@ chmod +x install.sh
 **3. 修改眼睛 / 头发 / 衣服贴图：**
 > 使用 `vrchat-avatar-modding`。先查清实际显示的材质和底图。需要分层交付时保留可编辑 PSD。这次直接改 PNG，请验证遮罩外像素、Alpha 和色彩信息，再用工作材质给我看近景。
 
-**4. 在 Blender 重建贴身服装：**
-> 使用 `vrchat-clothing-rebuild`。在 Blender 检查角色素体和服装网格岛，配置躯干贴合重建并输出三视图预览，等我确认预览图无误后再导回 Unity 工作场景。
+**4. 实验性 Blender 服装重构测试（需先备份并人工检查）：**
+> 我已备份当前工程，准备用 `vrchat-clothing-rebuild` 跑一次实验性服装重构测试。先在 Blender 检查素体和服装网格岛，生成三视图正交预览给我人工确认，未确认前不要导入 Unity 正式场景。
 
 > **长期跨多轮对话改模？** 建议把 [`templates/AVATAR_HANDOFF_TEMPLATE.md`](templates/AVATAR_HANDOFF_TEMPLATE.md) 复制到你的私人目录，记录每个版本的场景路径、衣柜参数表和回退基线，新开对话直接发给 AI 就能无缝接力。
 

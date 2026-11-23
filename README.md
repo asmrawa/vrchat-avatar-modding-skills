@@ -23,7 +23,7 @@ Instead of letting an AI guess Unity YAML or overwrite vendor prefabs, this tool
 | **Expression Menus, Parameters & FX Toggles** | Build independent `Bool` toggles, `Int` selectors, linked rules (e.g., hiding ears when a hat is active and restoring them cleanly), hand-prop exclusions, label translations without breaking parameters, and enforce VRChat's 8-controls/page & 256-bit synced limits. |
 | **Texture & PSD Editing (Photoshop + Pillow + GPT Image)** | Edit layered `.psd` files non-destructively (preserving author groups/masks for future manual editing), recolor UV islands via grayscale masks, add transparent decals/lettering, or repaint irises/hair streaks/embroidery with GPT Image and composite them back pixel-locked onto the original UV atlas. |
 | **Props, Lighting, Fit & Optimization** | Align handheld props, Contacts, and constraints to real poses; unify material lighting and `probeAnchor` references across worlds; audit PhysBones, particle capacities, Mip Streaming, Write Defaults, and SDK build/upload errors. |
-| **Blender Garment Rebuild** | Reconstruct torso-fitted clothing meshes in Blender for modified body shapes while preserving original UVs, materials, and skin weights, render 3-angle orthographic previews, and import back into Unity automatically. |
+| **Blender Inspection & Garment Rebuild (Experimental)** | Connect Blender MCP for mesh inspection, geometry analysis, and assisted vertex edits. Includes an experimental ray-cast torso-fitting pipeline (`vrchat-clothing-rebuild`, opt-in only) that preserves UVs and skinning, subject to manual collision/pose review. |
 | **Read-Only Project Audit & Safe Repair** | Inspect any VRChat Unity project without modifying files—tracing scenes, prefabs, `{fileID, guid}` references, Animator curves, and post-NDMF build output—and perform minimal, scoped repairs only when explicitly requested. |
 
 ---
@@ -35,7 +35,7 @@ flowchart LR
     User["Your Request"] --> Client["AI Client (Codex / Antigravity / Cursor)"]
     Client --> S1["Skill 1: vrchat-avatar-modding"]
     Client --> S2["Skill 2: vrchat-project-audit-and-repair"]
-    Client --> S3["Skill 3: vrchat-clothing-rebuild"]
+    Client --> S3["Skill 3: vrchat-clothing-rebuild (Experimental)"]
 
     S1 --> UMCP["Unity MCP Bridge"]
     S2 --> UMCP
@@ -64,11 +64,19 @@ Choose the editable source using [the UV texture guide](skills/vrchat-avatar-mod
    - **New painted art (irises, hair highlights, embroidery)**: [`vrc_gpt_texture_edit.py`](skills/vrchat-avatar-modding/scripts/vrc_gpt_texture_edit.py) (or a host image tool / prompt-only ChatGPT workflow) edits the original atlas using dual masks (an API guidance mask + a pixel-exact delivery mask). The result can be placed onto a new masked PSD layer or composited onto the PNG after `clean-bg` gutter cleanup.
 4. **Automated Pixel & Unity Verification**: `vrc_texture_tool.py compare` verifies exact dimensions, `outside_mask=0`, `alpha_changed=0`, visible RGB change, and PNG ICC/sRGB metadata before binding via `VrcMaterialSwap.cs` and testing on the avatar's attached `Animator` in Unity.
 
-### 3. How Blender Clothing Rebuild Works
-For outfits that no longer match a modified torso silhouette ([`vrchat-clothing-rebuild`](skills/vrchat-clothing-rebuild/SKILL.md)):
-1. [`fit_clothing.py`](skills/vrchat-clothing-rebuild/scripts/fit_clothing.py) runs in Blender background mode, projects the garment's main shell onto the evaluated target body mesh via ray casting with smoothstep collar/sleeve/waist falloff, transfers displacement to attached ornaments via KD-tree weighting, and renders 3 orthographic previews (front, side, quarter) while preserving vertex order, UVs, materials, and vertex groups.
-2. After you inspect and approve the previews, [`install_unity.py`](skills/vrchat-clothing-rebuild/scripts/install_unity.py) backs up the work scene and stages a verified one-shot Unity C# importer that maps vertex deltas onto the original Unity FBX mesh, clones its UVs, bone weights, and bind poses into a new work mesh asset, assigns it, and reports completion.
-3. Optional headless Blender MCP support is included via [`blender_mcp_headless.py`](skills/vrchat-clothing-rebuild/scripts/blender_mcp_headless.py).
+### 3. Blender MCP & Clothing Rebuild (Experimental)
+This toolkit separates **Blender MCP** (a general bridge for mesh inspection, geometry analysis, and assisted vertex edits) from the experimental **automated garment rebuild** workflow ([`vrchat-clothing-rebuild`](skills/vrchat-clothing-rebuild/SKILL.md)):
+
+- **What works today**:
+  1. **Blender MCP**: Lets AI assistants inspect Blender objects, check mesh islands/weights, and assist with targeted edits (including headless mode via [`blender_mcp_headless.py`](skills/vrchat-clothing-rebuild/scripts/blender_mcp_headless.py)).
+  2. **Experimental torso-fit pipeline**: [`fit_clothing.py`](skills/vrchat-clothing-rebuild/scripts/fit_clothing.py) projects the main garment shell onto the target body via ray casting, transfers deltas via KD-tree weighting, renders 3 orthographic previews, and [`install_unity.py`](skills/vrchat-clothing-rebuild/scripts/install_unity.py) stages a Unity importer that clones UVs, weights, and bind poses into a new mesh asset.
+- **Current limitations**:
+  - **No full collision solver**: Ray casting alone cannot guarantee zero intersection with the body.
+  - **Dynamic clipping risk**: Passing static rest-pose checks does not guarantee zero clipping during raised arms, crouching, sitting, or high-leg motions.
+  - **Narrow scope**: Targets torso garments in a specific local coordinate convention (`X` across, `Y` up, `+Z` forward); the Unity importer currently targets single-submesh (`subMeshCount == 1`) garments.
+  - **No automatic repair**: Rebuilt meshes still require manual visual and anatomical inspection.
+  - **Technical import != visual acceptance**: Clean UVs, skin weights, and Unity persistence do not guarantee production-ready aesthetics.
+- **Usage recommendation**: Keep Blender MCP as an optional inspection/assisted-editing tool. For production avatar modding, prefer **Unity MCP + Modular Avatar + NDMF + vendor-adapted outfits**. Use `vrchat-clothing-rebuild` **only** when you explicitly request an experimental rebuild, have backed up your project, and plan to inspect the result manually.
 
 ### 4. Account & Upload Safety
 - SDK builds, previews, and online uploads are strictly separated and only run on explicit request.
@@ -87,7 +95,7 @@ For outfits that no longer match a modified torso silhouette ([`vrchat-clothing-
 | **Pillow (`pip install pillow`)** | For the Pillow CLI | Required by `vrc_texture_tool.py` (`recolor`, `composite`, `clean-bg`, `compare`). |
 | **Photoshop / PSD editor (or `psd-tools`)** | Optional (PSD editing) | Recommended for interactive layered `.psd` editing and exporting. |
 | **OpenAI-compatible Images API Key** | Optional (Mode A AI art) | Only needed for direct API calls via `vrc_gpt_texture_edit.py`; Mode B (host image tool) and Mode C (prompt-only) need no API key. |
-| **Blender + `uv` (`uvx`)** | Optional (Mesh/clothing) | Blender runs the fitter directly. uvx is needed for the bundled MCP server. |
+| **Blender + `uv` (`uvx`)** | Optional (Inspection / experimental rebuild) | Blender runs mesh inspection and experimental fitting; `uvx` is only needed for the bundled Blender MCP server. |
 
 Check everything installed on your machine in one command:
 
@@ -103,14 +111,14 @@ python -X utf8 scripts/doctor.py
 | --- | --- | --- |
 | **`vrchat-avatar-modding`** | Main modding: outfits, wardrobes, menus/FX, props, PSD/AI textures, lighting/fit, optimization, SDK build triage | [`skills/vrchat-avatar-modding/SKILL.md`](skills/vrchat-avatar-modding/SKILL.md) |
 | **`vrchat-project-audit-and-repair`** | Read-only project inspection (static YAML/GUID, live Unity MCP, `-batchmode`, NDMF build) + explicit-only safe repair & cleanup | [`skills/vrchat-project-audit-and-repair/SKILL.md`](skills/vrchat-project-audit-and-repair/SKILL.md) |
-| **`vrchat-clothing-rebuild`** | Blender torso-fit mesh reconstruction, 3-angle previews, and verified Unity re-import preserving weights & UVs | [`skills/vrchat-clothing-rebuild/SKILL.md`](skills/vrchat-clothing-rebuild/SKILL.md) |
+| **`vrchat-clothing-rebuild`** | *(Experimental / Opt-in only)* Blender torso-fit mesh reconstruction, 3-angle previews, and Unity re-import—not recommended for default production workflows | [`skills/vrchat-clothing-rebuild/SKILL.md`](skills/vrchat-clothing-rebuild/SKILL.md) |
 
 ```text
 vrchat-avatar-modding-skills/
 ├── skills/
 │   ├── vrchat-avatar-modding/            # Main workflow + 10 references + 7 C#/Python scripts
 │   ├── vrchat-project-audit-and-repair/  # 3-layer audit + symptom triage + safe repair
-│   └── vrchat-clothing-rebuild/          # Blender rebuild pipeline + Unity importer + headless MCP
+│   └── vrchat-clothing-rebuild/          # Experimental Blender rebuild pipeline + Unity importer + headless MCP
 ├── unity-mcp/                            # Bundled AnkleBreaker Unity MCP plugin (2.32.0) & server (2.30.0)
 ├── blender-mcp/                          # Bundled MCP for Blender (2.3.1 wheel + add-on)
 ├── assets/                               # Project emblem / icon
@@ -195,8 +203,8 @@ chmod +x install.sh
 **3. Edit an avatar texture:**
 > Locate the visible material and its current atlas. Keep a layered source for future editing when requested. For this PNG edit, preserve protected pixels and alpha, and show a close-up of the result on the work material.
 
-**4. Rebuild torso-fitted clothing in Blender:**
-> Use `vrchat-clothing-rebuild`. Inspect the target body and garment islands in Blender, configure a torso-fit rebuild with 3-angle orthographic previews, and wait for my review before importing into Unity.
+**4. Experimental Blender garment test (opt-in, backup required):**
+> I have backed up my project and want to run an experimental `vrchat-clothing-rebuild` test. Inspect the target body and garment islands in Blender, generate 3-angle orthographic previews first, and wait for my manual review before importing anything into a Unity test scene.
 
 > **Long multi-session projects?** Copy [`templates/AVATAR_HANDOFF_TEMPLATE.md`](templates/AVATAR_HANDOFF_TEMPLATE.md) into your private workspace to track scene versions, wardrobe parameters, and rollback points across sessions.
 
