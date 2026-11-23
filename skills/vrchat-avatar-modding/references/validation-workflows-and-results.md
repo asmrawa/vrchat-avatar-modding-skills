@@ -90,7 +90,19 @@ python scripts/vrc_gpt_texture_edit.py --image Original.png --mask ApiMask.png -
 
 **Recorded persistence result**. The formal importer mapped 1,889 of 1,889 vertices and wrote a separate mesh asset and scene. After closing and reopening, the renderer still resolved to that asset. All 209 moved vertices matched the supplied target coordinates. UV channels, bone weights, bind poses, triangle indices, and material slot count matched the baseline. File hashes confirmed that the source scene and mesh were unchanged. The reopened NDMF clone completed jacket on → inner shirt on → jacket on through the actual merged menu parameter. The initial probe of the generated active-state proxy did not trigger the switch.
 
-**Recorded wardrobe result**. Nine outfit states produced 27 distinct pose captures across baseline, arm bend, and knee-raised poses. Each garment moved with the skeleton and no entire outfit detached in those captures. A knee in the high-leg pose appeared to intersect the front of one skirt. Reproduce it in the live client before treating it as a gameplay defect. The import test created a fresh work asset. Explicit replacement of an existing mesh asset was outside this run.
+**Recorded wardrobe result**. Nine outfit states produced 27 distinct pose captures across baseline, arm bend, and knee-raised poses. Each garment moved with the skeleton and no entire outfit detached in those captures. A knee in the high-leg pose appeared to intersect the front of one skirt. The import test created a fresh work asset for an inner shirt. Explicit replacement of an existing mesh asset was outside this run.
+
+### Live Client Follow-up
+
+The player confirmed that the captures came from the separate validation build produced before a later accessory change. The captures showed three open fit issues in that test build. Their status on the later working version remains unverified.
+
+| Item | Live observation | Pending verification |
+|---|---|---|
+| Layered dress | A raised knee breaks through the front skirt and apron area. The front silhouette looks more even with the legs lowered. | Compare the same outfit at neutral, seated, and high-knee poses from front and three-quarter views. Check the outer skirt and inner layers as the leg rises and returns. Trace garment weights and secondary motion if the intersection reproduces. |
+| Tail | The three-quarter view shows a bulky curved silhouette relative to the body and dress. | Compare tail length, thickness, and hip-relative position against the approved baseline at matching pose, camera distance, and angle. Repeat during a pose transition with secondary motion active. The screenshot alone cannot establish a scale change. |
+| Head accessory | The hair crown cuts across the underside of a plush head accessory in a close view. | Reproduce with the same hairstyle, then check all supported hairstyles while looking up, turning, and tilting the head. Compare head-relative attachment against the baseline and check for intersection and excessive gaps. |
+
+Keep the import scope with the evidence. The logged mesh rebuild covered the inner shirt. The dress, tail, and head accessory findings remain open. Record the scene and SDK bundle used in the next live run, with comparable before/after views to establish when each issue appears.
 
 ## Report the Result
 

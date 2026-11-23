@@ -21,7 +21,7 @@ Load only the references relevant to the user's request before editing:
 | Hand props, grip alignment, contacts, constraints, multi-gimmick coexistence | [references/props-and-gimmicks.md](references/props-and-gimmicks.md) |
 | Local fit, precise coordinate offsets, lighting/probe mismatch, offscreen checks | [references/fit-lighting-and-validation.md](references/fit-lighting-and-validation.md) |
 | Registered PSD or assigned PNG, layered texture editing, Pillow masked recolor/decals, GPT Image UV atlas generation, and Unity material acceptance | [references/psd-texture-workflow.md](references/psd-texture-workflow.md) |
-| Reproducible texture, online preview, clone isolation, FX, NDMF, and garment checks with recorded results | [references/validation-workflows-and-results.md](references/validation-workflows-and-results.md) |
+| Reproducible texture, clone isolation, FX, NDMF, garment checks, and live fit follow-up | [references/validation-workflows-and-results.md](references/validation-workflows-and-results.md) |
 | SDK height warnings vs build pose leakage, AAO/BlendShapes, particles, mipmaps, WD | [references/avatar-height-and-performance.md](references/avatar-height-and-performance.md) |
 | Work versions, checkpoints, `SaveAssetIfDirty`, NDMF re-entrancy guard, backups | [references/versioned-work-and-rollback.md](references/versioned-work-and-rollback.md) |
 | Independent Blueprint IDs, SDK build/upload triage, thumbnails, offline CLI tools | [references/publishing-and-offline-tools.md](references/publishing-and-offline-tools.md) |
