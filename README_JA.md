@@ -132,7 +132,9 @@ vrchat-avatar-modding-skills/
 
 ## クイックスタート
 
-本リポジトリを固定フォルダ（例：`C:/Tools/vrchat-avatar-modding-skills`）へクローンするか、[GitHub Releases](https://github.com/asmrawa/vrchat-avatar-modding-skills/releases) から全スキル同梱の `vrchat-avatar-modding-skills.zip` をダウンロードしてください。以下はリポジトリルートから実行します。
+このリポジトリをクローンし、リポジトリのルートで以下のコマンドを実行すると、Skills を直接インストールできます。
+
+共有用の ZIP が必要な場合は、クローンしたリポジトリのルートで `python -X utf8 scripts/package_skills.py` を実行します。出力先は `dist/vrchat-avatar-modding-skills.zip` です。
 
 ### ステップ 1：Skills をインストール
 

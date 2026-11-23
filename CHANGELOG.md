@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- Document local ZIP packaging in the three quick-start guides.
 - Restored the standard root MIT license and kept upstream attribution in the third-party notices and the adapted Skill's license.
 - Removed the bundled Unity and Blender MCP implementations. The Skills installers copy the three Skills, and the ZIP includes example configs for separately installed MCP tools.
 

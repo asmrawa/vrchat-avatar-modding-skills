@@ -132,7 +132,9 @@ vrchat-avatar-modding-skills/
 
 ## 快速安装与连接
 
-先将本仓库克隆到固定目录（例如 `C:/Tools/vrchat-avatar-modding-skills`），或从 [GitHub Releases](https://github.com/asmrawa/vrchat-avatar-modding-skills/releases) 直接下载包含全部 Skills 与安装脚本的整合包 `vrchat-avatar-modding-skills.zip`。以下命令均在仓库根目录执行。
+克隆本仓库后，在仓库根目录运行下面的命令，即可直接安装 Skills。
+
+如果需要分享整合包，在克隆后的仓库根目录运行 `python -X utf8 scripts/package_skills.py`。生成的 ZIP 位于 `dist/vrchat-avatar-modding-skills.zip`。
 
 ### 第 1 步：安装 Skills
 

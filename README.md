@@ -132,7 +132,9 @@ vrchat-avatar-modding-skills/
 
 ## Quick Start
 
-Clone the repository (or download the all-in-one Skills bundle `vrchat-avatar-modding-skills.zip` from [GitHub Releases](https://github.com/asmrawa/vrchat-avatar-modding-skills/releases)) into a fixed folder such as `C:/Tools/vrchat-avatar-modding-skills`. Run commands below from the repo root.
+Clone this repository and run the commands below from the repository root. You can install the Skills directly from the checkout.
+
+To build a ZIP for sharing, run `python -X utf8 scripts/package_skills.py` from the cloned repository. The bundle is written to `dist/vrchat-avatar-modding-skills.zip`.
 
 ### Step 1: Install the Skills
 
