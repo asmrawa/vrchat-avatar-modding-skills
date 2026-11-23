@@ -150,16 +150,20 @@ chmod +x install.sh
 
 ### Step 2: Connect Unity MCP
 
+**Upstream:** [AnkleBreaker Unity Editor plugin](https://github.com/AnkleBreaker-Studio/unity-mcp-plugin#installation) · [AnkleBreaker Node MCP server](https://github.com/AnkleBreaker-Studio/unity-mcp-server#get-started)
+
 Reuse your existing Unity MCP connection if it already works. If an older setup points into this toolkit checkout, move to an upstream installation and update the project and client references before upgrading.
 
-1. In the VRChat project, follow the [upstream Unity plugin install guide](https://github.com/AnkleBreaker-Studio/unity-mcp-plugin#installation). Then follow the [companion Node server guide](https://github.com/AnkleBreaker-Studio/unity-mcp-server#get-started) and keep its checkout outside this toolkit.
+1. Install the Unity plugin in your VRChat project. Install the companion Node server outside this toolkit.
 2. Register the installed server in your client using the [`unity_mcp` TOML example](config/codex.config.example.toml) or the [`unity-mcp` JSON example](config/antigravity_mcp.example.json). Use the absolute path to the external server's `src/index.js`.
 3. Restart or reconnect the MCP client and call `unity_list_instances` to verify the target project.
 
 ### Step 3: Connect Blender MCP (Optional)
 
+**Upstream:** [MCP for Blender on GitHub](https://github.com/ahujasid/mcp-for-blender) · [PyPI package (2.3.1)](https://pypi.org/project/mcp-for-blender/2.3.1/)
+
 1. Install **Blender** and **[uv](https://docs.astral.sh/uv/getting-started/installation/)**.
-2. Install the Blender add-on from the [upstream PyPI package](https://pypi.org/project/mcp-for-blender/2.3.1/):
+2. Install the Blender add-on from PyPI.
    ```sh
    uvx mcp-for-blender==2.3.1 install-addon
    ```

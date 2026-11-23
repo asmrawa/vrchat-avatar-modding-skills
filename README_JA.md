@@ -150,16 +150,20 @@ chmod +x install.sh
 
 ### ステップ 2：Unity MCP を接続
 
+**配布元**　[AnkleBreaker Unity エディタープラグイン](https://github.com/AnkleBreaker-Studio/unity-mcp-plugin#installation) · [AnkleBreaker Node MCP サーバー](https://github.com/AnkleBreaker-Studio/unity-mcp-server#get-started)
+
 既存の Unity MCP 接続はそのまま使えます。以前の設定がこのリポジトリ内の MCP ファイルを参照している場合は、配布元から個別に導入し、Unity プロジェクトとクライアントの参照先を更新してください。
 
-1. VRChat プロジェクトに[配布元の手順](https://github.com/AnkleBreaker-Studio/unity-mcp-plugin#installation)で Unity プラグインを導入します。[Node サーバーの手順](https://github.com/AnkleBreaker-Studio/unity-mcp-server#get-started)に従い、サーバーはこのリポジトリの外に置きます。
+1. VRChat プロジェクトに Unity プラグインを導入し、対応する Node サーバーをこのリポジトリの外に置きます。
 2. クライアントに応じて [TOML の例](config/codex.config.example.toml)の `unity_mcp`、または [JSON の例](config/antigravity_mcp.example.json)の `unity-mcp` を使い、外部サーバーの `src/index.js` を絶対パスで指定します。
 3. クライアントを再起動するか MCP に再接続し、`unity_list_instances` で対象プロジェクトを確認します。
 
 ### ステップ 3：Blender MCP を接続（任意）
 
+**配布元**　[MCP for Blender の GitHub リポジトリ](https://github.com/ahujasid/mcp-for-blender) · [PyPI パッケージ（2.3.1）](https://pypi.org/project/mcp-for-blender/2.3.1/)
+
 1. **Blender** と **[uv](https://docs.astral.sh/uv/getting-started/installation/)** をインストールします。
-2. [PyPI の配布元パッケージ](https://pypi.org/project/mcp-for-blender/2.3.1/)から Blender アドオンをインストールします。
+2. 次のコマンドで PyPI から Blender アドオンをインストールします。
    ```sh
    uvx mcp-for-blender==2.3.1 install-addon
    ```

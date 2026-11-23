@@ -150,16 +150,20 @@ chmod +x install.sh
 
 ### 第 2 步：连接 Unity MCP
 
+**上游安装入口**　[AnkleBreaker Unity 编辑器插件](https://github.com/AnkleBreaker-Studio/unity-mcp-plugin#installation) · [AnkleBreaker Node MCP 服务端](https://github.com/AnkleBreaker-Studio/unity-mcp-server#get-started)
+
 已有可用的 Unity MCP 连接可以直接复用。如果旧配置指向本仓库内的 MCP 文件，请先按上游说明另行安装，再更新 Unity 工程和客户端的引用。
 
-1. 在 VRChat 工程中按[上游 Unity 插件安装说明](https://github.com/AnkleBreaker-Studio/unity-mcp-plugin#installation)安装插件，再按[上游 Node 服务端说明](https://github.com/AnkleBreaker-Studio/unity-mcp-server#get-started)安装服务端。服务端放在本仓库之外。
+1. 在 VRChat 工程中安装 Unity 插件，并将配套的 Node 服务端安装到本仓库之外。
 2. 按客户端格式使用 [TOML 示例](config/codex.config.example.toml)中的 `unity_mcp` 或 [JSON 示例](config/antigravity_mcp.example.json)中的 `unity-mcp`，将入口替换为外部服务端 `src/index.js` 的绝对路径。
 3. 重启客户端或重新连接 MCP，调用 `unity_list_instances` 确认目标工程。
 
 ### 第 3 步：连接 Blender MCP（可选）
 
+**上游安装入口**　[MCP for Blender GitHub 仓库](https://github.com/ahujasid/mcp-for-blender) · [PyPI 安装包（2.3.1）](https://pypi.org/project/mcp-for-blender/2.3.1/)
+
 1. 安装 **Blender** 与 **[uv](https://docs.astral.sh/uv/getting-started/installation/)**。
-2. 从 [PyPI 上游包](https://pypi.org/project/mcp-for-blender/2.3.1/)安装 Blender 插件：
+2. 运行下面的命令，从 PyPI 安装 Blender 插件。
    ```sh
    uvx mcp-for-blender==2.3.1 install-addon
    ```
