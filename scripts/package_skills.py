@@ -69,6 +69,8 @@ def main() -> None:
             "README_JA.md",
             "install.ps1",
             "install.sh",
+            "config/codex.config.example.toml",
+            "config/antigravity_mcp.example.json",
         ):
             p = ROOT / top_file
             if p.is_file():

@@ -9,9 +9,7 @@
 
 **English** | [简体中文](README_CN.md) | [日本語](README_JA.md)
 
-An end-to-end **Agent Skills + Unity MCP + Blender MCP** toolkit that turns AI coding assistants (**Codex**, **Antigravity**, **Cursor**, and any Agent Skills / MCP client) into a structured, non-destructive VRChat avatar modding workflow.
-
-Instead of letting an AI guess Unity YAML or overwrite vendor prefabs, this toolkit gives it **live Unity & Blender control**, **deterministic C#/Python helpers**, and **modular VRChat engineering playbooks**.
+This toolkit provides three Agent Skills and C#/Python helpers for non-destructive VRChat avatar modding. Optional Unity and Blender MCP integrations are installed separately from their upstream projects.
 
 ---
 
@@ -49,7 +47,7 @@ flowchart LR
 ```
 
 ### 1. Safe Non-Destructive Unity Automation
-- **Live Editor Control**: The bundled **AnkleBreaker Unity MCP** bridges your AI client directly to the running Unity Editor (supporting multi-instance discovery and dynamic port selection). The AI inspects real `VRCAvatarDescriptor`, Modular Avatar components, renderers, materials, and Animator states instead of guessing from text files.
+- **Live Editor Control**: **AnkleBreaker Unity MCP** bridges your AI client directly to the running Unity Editor (supporting multi-instance discovery and dynamic port selection). The AI inspects real `VRCAvatarDescriptor`, Modular Avatar components, renderers, materials, and Animator states instead of guessing from text files.
 - **Strict Isolation**: Vendor assets (`Assets/<Vendor>/`) are never edited. Every modification creates a versioned work scene and asset folder under `Assets/VRCWork/` and saves only owned dirty assets (`AssetDatabase.SaveAssetIfDirty`), keeping prior versions intact for instant rollback.
 - **3-Layer Verification**: Every check distinguishes between **(1) static YAML/GUID files**, **(2) Unity Editor resolved state**, and **(3) NDMF / Modular Avatar / AAO build-resolved output**. Animation/pose checks run on temporary clones so the work scene's rest skeleton is never altered.
 - **Bundled C# Primitives**: Reusable helpers ([`VrcAvatarIntegration.cs`](skills/vrchat-avatar-modding/scripts/VrcAvatarIntegration.cs), [`VrcMaterialSwap.cs`](skills/vrchat-avatar-modding/scripts/VrcMaterialSwap.cs)) handle clip/controller cloning, float-allowlist lighting copies, rest-pose-invariant skin rebinding, and safe material swaps.
@@ -90,12 +88,12 @@ This toolkit separates **Blender MCP** (a general bridge for mesh inspection, ge
 | --- | --- | --- |
 | **AI Client** (Codex / Antigravity / Cursor / compatible client) | Required | Loads the 3 Agent Skills and connects to MCP servers. |
 | **Unity Editor + VRChat SDK3 (Avatars)** | For Unity work | Your VRChat project (exact Unity version in `ProjectSettings/ProjectVersion.txt`). Modular Avatar, NDMF, lilToon/Poiyomi, Gesture Manager, and Avatar Optimizer are recommended. |
-| **Node.js >= 18** | Required for Unity MCP | Runs the bundled `unity-mcp/unity-mcp-server` Node bridge (verified on Node.js 24). |
+| **Node.js >= 18** | For AnkleBreaker Unity MCP | Runs the separately installed Node server. |
 | **Python >= 3.10** | Required for CLI tools | Runs offline Blueprint/budget/log audits, texture tools, clothing scripts, and `doctor.py`. |
 | **Pillow (`pip install pillow`)** | For the Pillow CLI | Required by `vrc_texture_tool.py` (`recolor`, `composite`, `clean-bg`, `compare`). |
 | **Photoshop / PSD editor (or `psd-tools`)** | Optional (PSD editing) | Recommended for interactive layered `.psd` editing and exporting. |
 | **OpenAI-compatible Images API Key** | Optional (Mode A AI art) | Only needed for direct API calls via `vrc_gpt_texture_edit.py`; Mode B (host image tool) and Mode C (prompt-only) need no API key. |
-| **Blender + `uv` (`uvx`)** | Optional (Inspection / experimental rebuild) | Blender runs mesh inspection and experimental fitting; `uvx` is only needed for the bundled Blender MCP server. |
+| **Blender + `uv` (`uvx`)** | Optional (inspection / experimental rebuild) | Blender runs the fitting scripts. `uvx` starts the separately installed Blender MCP. |
 
 Check everything installed on your machine in one command:
 
@@ -119,8 +117,6 @@ vrchat-avatar-modding-skills/
 │   ├── vrchat-avatar-modding/            # Main workflow + 10 references + 7 C#/Python scripts
 │   ├── vrchat-project-audit-and-repair/  # 3-layer audit + symptom triage + safe repair
 │   └── vrchat-clothing-rebuild/          # Experimental Blender rebuild pipeline + Unity importer + headless MCP
-├── unity-mcp/                            # Bundled AnkleBreaker Unity MCP plugin (2.32.0) & server (2.30.0)
-├── blender-mcp/                          # Bundled MCP for Blender (2.3.1 wheel + add-on)
 ├── assets/                               # Project emblem / icon
 ├── config/                               # MCP config examples (Codex TOML, generic JSON)
 ├── templates/                            # Sanitized multi-session handoff template
@@ -144,9 +140,6 @@ Clone the repository (or download the all-in-one Skills bundle `vrchat-avatar-mo
 ```powershell
 # Choose: codex | antigravity | cursor | all
 .\install.ps1 -Client codex
-
-# Optional: also install Unity MCP Node dependencies and the Blender add-on
-.\install.ps1 -Client all -InstallUnityMcpDeps -InstallBlenderAddon
 ```
 
 **macOS / Linux:**
@@ -157,37 +150,22 @@ chmod +x install.sh
 
 ### Step 2: Connect Unity MCP
 
-1. Open your VRChat Unity project with its matching Unity version.
-2. Go to `Window -> Package Manager -> + -> Add package from disk...` and select [`unity-mcp/unity-mcp-plugin/package.json`](unity-mcp/unity-mcp-plugin/package.json).
-3. After compilation, open `Window -> AB Unity MCP` and confirm `Server Running` (default port range `7890-7899`).
-4. Install locked Node.js server dependencies:
-   ```powershell
-   $toolkit = (Get-Location).Path
-   $unityDir = Join-Path $toolkit 'unity-mcp/unity-mcp-server'
-   $nodeExe = (Get-Command node.exe -ErrorAction Stop).Source
-   $unityEntry = Join-Path $unityDir 'src/index.js'
-   Push-Location -LiteralPath $unityDir
-   try { npm.cmd ci --omit=dev --ignore-scripts } finally { Pop-Location }
-   ```
-5. Register the server in your client:
-   - **Codex CLI**: `codex mcp add unity_mcp -- "$nodeExe" "$unityEntry"` (or merge [`config/codex.config.example.toml`](config/codex.config.example.toml))
-   - **Antigravity / Cursor / JSON MCP clients**: Merge the `unity-mcp` block from [`config/antigravity_mcp.example.json`](config/antigravity_mcp.example.json) with your local paths.
-6. Restart your client and verify with `unity_list_instances`.
+Reuse your existing Unity MCP connection if it already works. If an older setup points into this toolkit checkout, move to an upstream installation and update the project and client references before upgrading.
+
+1. In the VRChat project, follow the [upstream Unity plugin install guide](https://github.com/AnkleBreaker-Studio/unity-mcp-plugin#installation). Then follow the [companion Node server guide](https://github.com/AnkleBreaker-Studio/unity-mcp-server#get-started) and keep its checkout outside this toolkit.
+2. Register the installed server in your client using the [`unity_mcp` TOML example](config/codex.config.example.toml) or the [`unity-mcp` JSON example](config/antigravity_mcp.example.json). Use the absolute path to the external server's `src/index.js`.
+3. Restart or reconnect the MCP client and call `unity_list_instances` to verify the target project.
 
 ### Step 3: Connect Blender MCP (Optional)
 
 1. Install **Blender** and **[uv](https://docs.astral.sh/uv/getting-started/installation/)**.
-2. Install the bundled Blender add-on:
-   ```powershell
-   $toolkit = (Get-Location).Path
-   $uvxExe = (Get-Command uvx.exe -ErrorAction Stop).Source
-   $wheel = Join-Path $toolkit 'blender-mcp/mcp_for_blender-2.3.1-py3-none-any.whl'
-   & $uvxExe --from $wheel mcp-for-blender install-addon
+2. Install the Blender add-on from the [upstream PyPI package](https://pypi.org/project/mcp-for-blender/2.3.1/):
+   ```sh
+   uvx mcp-for-blender==2.3.1 install-addon
    ```
-   *(Or install [`blender-mcp/mcp_for_blender_addon.py`](blender-mcp/mcp_for_blender_addon.py) via Blender `Preferences -> Add-ons -> Install from Disk`.)*
 3. Enable `MCP for Blender` in Blender Preferences, press `N` in the 3D Viewport, and click `Start MCP Server` (or launch headless with [`blender_mcp_headless.py`](skills/vrchat-clothing-rebuild/scripts/blender_mcp_headless.py)).
 4. Register in your client:
-   - **Codex CLI**: `codex mcp add blender --env BLENDER_MCP_SAFE_MODE=1 --env DISABLE_TELEMETRY=true -- "$uvxExe" --from "$wheel" mcp-for-blender`
+   - **Codex CLI**: `codex mcp add blender --env BLENDER_MCP_SAFE_MODE=1 --env DISABLE_TELEMETRY=true -- uvx mcp-for-blender==2.3.1`
    - **Antigravity / Cursor / JSON MCP clients**: Merge the `blender` block from [`config/antigravity_mcp.example.json`](config/antigravity_mcp.example.json).
 
 ---
@@ -223,11 +201,13 @@ python -X utf8 scripts/package_skills.py
 
 ## Licenses & Attribution
 
-- Original skills, scripts, templates, and documentation: **MIT License** ([`LICENSE`](LICENSE)).
-- `skills/vrchat-avatar-modding/`: Derived from [felixchaos/vrchat-avatar-modding-skill](https://github.com/felixchaos/vrchat-avatar-modding-skill) (**MIT License**).
-- `blender-mcp/`: Bundled from [mcp-for-blender 2.3.1](https://pypi.org/project/mcp-for-blender/2.3.1/) by Siddharth Ahuja (**MIT License**).
-- `unity-mcp/`: **Powered by AnkleBreaker MCP** ([unity-mcp-plugin](https://github.com/AnkleBreaker-Studio/unity-mcp-plugin) `2.32.0` · [unity-mcp-server](https://github.com/AnkleBreaker-Studio/unity-mcp-server) `2.30.0`), licensed under **AnkleBreaker Open License v1.0** (free distribution permitted; commercial resale prohibited). See [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) for complete notices.
+| Component | License | Distribution |
+| --- | --- | --- |
+| Original toolkit files | [MIT](LICENSE) | Included |
+| Core modding Skill adapted from [Felix's work](https://github.com/felixchaos/vrchat-avatar-modding-skill) | [MIT and upstream attribution](skills/vrchat-avatar-modding/LICENSE) | Included |
+| Powered by AnkleBreaker MCP | [AnkleBreaker Open License v1.0](https://github.com/AnkleBreaker-Studio/unity-mcp-plugin/blob/main/LICENSE) | Optional upstream installation |
+| [MCP for Blender](https://pypi.org/project/mcp-for-blender/2.3.1/) | MIT | Optional upstream installation |
 
-<img src="unity-mcp/unity-mcp-plugin/icon.png" alt="Powered by AnkleBreaker MCP" width="96" />
+See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for upstream credits and license links.
 
 > **Note**: Always use legally obtained avatar bases, outfits, shaders, and VRChat SDK packages. Never commit commercial assets, Blueprint IDs, or account credentials.

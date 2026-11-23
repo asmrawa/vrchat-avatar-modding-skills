@@ -2,19 +2,15 @@
 set -euo pipefail
 
 # Install VRChat Avatar Modding Skills on macOS / Linux.
-# Usage: ./install.sh [codex|antigravity|cursor|all] [--force] [--install-unity-deps] [--install-blender-addon]
+# Usage: ./install.sh [codex|antigravity|cursor|all] [--force]
 
 CLIENT="${1:-codex}"
 FORCE=0
-INSTALL_UNITY_DEPS=0
-INSTALL_BLENDER_ADDON=0
 
 shift || true
 for arg in "$@"; do
   case "$arg" in
     --force) FORCE=1 ;;
-    --install-unity-deps) INSTALL_UNITY_DEPS=1 ;;
-    --install-blender-addon) INSTALL_BLENDER_ADDON=1 ;;
     *) echo "Unknown option: $arg" >&2; exit 1 ;;
   esac
 done
@@ -55,22 +51,10 @@ case "$CLIENT" in
     install_to "cursor"      "$HOME/.cursor/skills"
     ;;
   *)
-    echo "Usage: $0 [codex|antigravity|cursor|all] [--force] [--install-unity-deps] [--install-blender-addon]" >&2
+    echo "Usage: $0 [codex|antigravity|cursor|all] [--force]" >&2
     exit 1
     ;;
 esac
-
-if [ "$INSTALL_UNITY_DEPS" -eq 1 ]; then
-  echo ""
-  echo "[Unity MCP] Installing locked Node.js dependencies..."
-  (cd "$ROOT/unity-mcp/unity-mcp-server" && npm ci --omit=dev --ignore-scripts)
-fi
-
-if [ "$INSTALL_BLENDER_ADDON" -eq 1 ]; then
-  echo ""
-  echo "[Blender MCP] Installing Blender add-on from bundled wheel..."
-  uvx --from "$ROOT/blender-mcp/mcp_for_blender-2.3.1-py3-none-any.whl" mcp-for-blender install-addon
-fi
 
 echo ""
 echo "Done! Restart your AI client or open a new session to load the skills."

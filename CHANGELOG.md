@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Restored the standard root MIT license and kept upstream attribution in the third-party notices and the adapted Skill's license.
+- Removed the bundled Unity and Blender MCP implementations. The Skills installers copy the three Skills, and the ZIP includes example configs for separately installed MCP tools.
+
 - Use a versioned copy of the matching editable PSD for local texture changes, including PNG-only delivery. Document when to use a flat PNG and how to report pending visual review separately from pixel and Unity state checks.
 
 - Repositioned `vrchat-clothing-rebuild` as an **experimental, opt-in** helper across English, Chinese, and Japanese READMEs, `skills/vrchat-clothing-rebuild/SKILL.md`, `agents/openai.yaml`, and `skills/vrchat-avatar-modding/SKILL.md`—preserving Blender MCP for mesh inspection/assisted edits while keeping **Unity MCP + Modular Avatar + NDMF** as the recommended default workflow and documenting ray-cast, dynamic clipping, coordinate/submesh, and manual visual-review limitations.

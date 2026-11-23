@@ -19,17 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-THIRD-PARTY COMPONENTS NOTICE:
-This MIT License applies to the original skills, documentation, configuration
-templates, scripts, and modifications in this repository. Bundled third-party
-components retain their respective upstream licenses and attribution terms:
-- `skills/vrchat-avatar-modding/` is derived from Felix's MIT-licensed
-  `vrchat-avatar-modding-skill`.
-- `unity-mcp/` is governed by the AnkleBreaker Open License v1.0 (non-OSI;
-  includes attribution and resale-prohibition terms).
-- `blender-mcp/` is governed by the MIT License (Siddharth Ahuja).
-
-See `THIRD_PARTY_NOTICES.md` for complete copyright and license details.

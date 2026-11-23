@@ -96,17 +96,16 @@ def check_required_files(errors: list[str]) -> None:
         ".gitignore",
         "install.ps1",
         "install.sh",
-        "unity-mcp/unity-mcp-plugin/LICENSE",
-        "unity-mcp/unity-mcp-plugin/package.json",
-        "unity-mcp/unity-mcp-plugin/icon.png",
-        "unity-mcp/unity-mcp-server/LICENSE",
-        "unity-mcp/unity-mcp-server/package.json",
-        "blender-mcp/LICENSE",
+        "config/codex.config.example.toml",
+        "config/antigravity_mcp.example.json",
         "skills/vrchat-avatar-modding/LICENSE",
     ]
     for rel in required:
         if not (ROOT / rel).is_file():
             errors.append(f"Missing required file: {rel}")
+    for vendor_dir in ("unity-mcp", "blender-mcp"):
+        if (ROOT / vendor_dir).exists():
+            errors.append(f"Keep optional MCP installations outside the toolkit: {vendor_dir}/")
 
 
 def check_python_syntax(errors: list[str]) -> None:

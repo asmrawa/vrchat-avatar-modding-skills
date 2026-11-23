@@ -3,15 +3,13 @@
     "unity-mcp": {
       "command": "node",
       "args": [
-        "/ABSOLUTE/PATH/TO/vrchat-avatar-modding-skills/unity-mcp/unity-mcp-server/src/index.js"
+        "/ABSOLUTE/PATH/TO/unity-mcp-server/src/index.js"
       ]
     },
     "blender": {
       "command": "uvx",
       "args": [
-        "--from",
-        "/ABSOLUTE/PATH/TO/vrchat-avatar-modding-skills/blender-mcp/mcp_for_blender-2.3.1-py3-none-any.whl",
-        "mcp-for-blender"
+        "mcp-for-blender==2.3.1"
       ],
       "env": {
         "BLENDER_MCP_SAFE_MODE": "1",

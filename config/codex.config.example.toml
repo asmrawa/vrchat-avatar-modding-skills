@@ -1,11 +1,11 @@
 # Merge only the sections you need into ~/.codex/config.toml and replace with your local paths.
 [mcp_servers.unity_mcp]
 command = "C:/Program Files/nodejs/node.exe"
-args = ["C:/Tools/vrchat-avatar-modding-skills/unity-mcp/unity-mcp-server/src/index.js"]
+args = ["C:/Tools/unity-mcp-server/src/index.js"]
 
 [mcp_servers.blender]
 command = "C:/Tools/uv/uvx.exe"
-args = ["--from", "C:/Tools/vrchat-avatar-modding-skills/blender-mcp/mcp_for_blender-2.3.1-py3-none-any.whl", "mcp-for-blender"]
+args = ["mcp-for-blender==2.3.1"]
 
 [mcp_servers.blender.env]
 BLENDER_MCP_SAFE_MODE = "1"

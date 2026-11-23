@@ -8,7 +8,7 @@ Contributions that improve reliability, cross-client compatibility, or VRChat SD
 2. **English inside `skills/`**: Keep `SKILL.md`, `references/*.md`, and `agents/openai.yaml` in concise, unambiguous English to maximize token efficiency and cross-locale reach. Keep top-level README translations (`README.md`, `README_CN.md`, `README_JA.md`) synchronized.
 3. **Zero private or copyrighted avatar assets**: Never commit commercial/private avatar names, personal local paths, VRChat `avtr_...` Blueprint IDs, credentials, presigned upload URLs, Unity logs, or vendor `.unitypackage` / `.fbx` / `.png` assets.
 4. **Keep `SKILL.md` lean**: Put detailed procedures, edge cases, and code skeletons in `references/` and link them from the routing table in `SKILL.md`.
-5. **Respect third-party licenses**: Do not remove upstream `LICENSE` files or attribution notices under `unity-mcp/`, `blender-mcp/`, or `skills/vrchat-avatar-modding/`.
+5. **Respect third-party licenses**. Keep the core Skill's upstream attribution and license. Link optional MCP implementations at their upstream source. Record third-party attribution in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## Before Opening A Pull Request
 

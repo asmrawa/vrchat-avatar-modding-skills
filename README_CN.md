@@ -9,9 +9,7 @@
 
 [English](README.md) | **简体中文** | [日本語](README_JA.md)
 
-一套开箱即用的 **Agent Skills + Unity MCP + Blender MCP** 改模工具包，让 **Codex**、**Antigravity**、**Cursor** 等支持 Agent Skills 与 MCP 的 AI 助手，能够安全、非破坏式地完成 Unity 换装、菜单开关、PSD/AI 贴图编辑、性能优化与 Blender 服装贴合重建。
-
-这套工具不只是写给 AI 的口头提示词，而是把 **Unity / Blender 实时控制桥梁（MCP）**、**可复用的 C# / Python 工具脚本** 和 **完整的 VRChat 工程规范** 结合成了一套可复现、可回退的改模工作流。
+为 Codex、Antigravity、Cursor 等客户端提供三套 VRChat 改模 Skills 和 C#／Python 辅助脚本，用于非破坏式换装、菜单开关、贴图编辑和工程审计。Unity 与 Blender MCP 按需从各自上游安装。
 
 ---
 
@@ -49,7 +47,7 @@ flowchart LR
 ```
 
 ### 1. Unity 改模是如何做到安全且可回退的？
-- **实时操控 Unity（Unity MCP）**：仓库内置 **AnkleBreaker Unity MCP** 插件与 Node 服务端，AI 可以直接发现当前打开的 Unity 实例、读取场景层级、组件、材质槽和动画状态，并按需执行受控 C# 片段和截取编辑器画面，而不是靠猜 YAML 文件盲改。
+- **实时操控 Unity（Unity MCP）**：接入 **AnkleBreaker Unity MCP** 后，AI 可以直接发现当前打开的 Unity 实例、读取场景层级、组件、材质槽和动画状态，并按需执行受控 C# 片段和截取编辑器画面。
 - **隔离工作版本**：绝不修改原厂导入的预制体、FBX、Controller 和贴图。每次较大修改都在 `Assets/VRCWork/` 下创建独立版本场景与衍生资源副本，只保存本轮修改的资产（`AssetDatabase.SaveAssetIfDirty`），旧版本随时可一键打开回退。
 - **三层核验体系**：严格区分 **① 静态序列化文件（YAML/GUID）**、**② Unity 编辑器当前解析状态** 和 **③ NDMF / Modular Avatar / Avatar Optimizer 构建后的最终状态**。所有动画采样和姿态测试都在临时克隆体上进行，确保工作场景的源骨架保持干净。
 - **内置 C# 编辑器原语**：[`VrcAvatarIntegration.cs`](skills/vrchat-avatar-modding/scripts/VrcAvatarIntegration.cs) 与 [`VrcMaterialSwap.cs`](skills/vrchat-avatar-modding/scripts/VrcMaterialSwap.cs) 负责安全克隆剪辑与控制器、按属性白名单对齐材质受光、保持世界静止几何不变的骨骼重绑定，以及限定在工作目录内的材质贴图切换。
@@ -90,12 +88,12 @@ flowchart LR
 | --- | --- | --- |
 | **AI 客户端**（Codex / Antigravity / Cursor 等） | 必需 | 加载 3 个改模 Skills 并挂载 MCP 服务。 |
 | **Unity Editor + VRChat SDK3 (Avatars)** | Unity 工程操作需要 | 与工程 `ProjectSettings/ProjectVersion.txt` 匹配的 Unity 版本；推荐搭配 Modular Avatar、NDMF、lilToon / Poiyomi、Gesture Manager、Avatar Optimizer。 |
-| **Node.js >= 18** | 用 Unity MCP 必需 | 运行内置的 `unity-mcp/unity-mcp-server` 桥接服务（已在 Node.js 24 验证）。 |
+| **Node.js >= 18** | 使用 AnkleBreaker Unity MCP 时需要 | 运行独立安装的 Node 服务端。 |
 | **Python >= 3.10** | 用 CLI 工具必需 | 运行离线审计、日志摘要、贴图处理、服装脚本与 `doctor.py`。 |
 | **Pillow（`pip install pillow`）** | 使用 Pillow 工具时需要 | `vrc_texture_tool.py` 依赖它进行遮罩换色、透明合成、去底噪与像素/ICC 校验。 |
 | **Photoshop / PSD 编辑器（或 `psd-tools`）** | 改 PSD 时推荐 | 用于直接编辑保留分层的 `.psd` 源文件并导出 PNG。 |
 | **OpenAI 兼容 Images API Key** | 选配（仅 API 直出） | 仅在使用 `vrc_gpt_texture_edit.py` 直连 API 时通过环境变量提供；用宿主自带生图或纯 Prompt 模式不需要。 |
-| **Blender + `uv`（`uvx`）** | 选配（模型检查 / 实验性重构） | Blender 可直接运行检查与实验性贴合脚本；使用随包提供的 Blender MCP 服务端才需要 uvx。 |
+| **Blender + `uv`（`uvx`）** | 选配（模型检查 / 实验性重构） | Blender 可直接运行实验性贴合脚本。接入 Blender MCP 时才需要 `uvx`。 |
 
 可以随时在仓库根目录运行一键环境体检，看看本机缺什么以及对应的安装命令：
 
@@ -119,8 +117,6 @@ vrchat-avatar-modding-skills/
 │   ├── vrchat-avatar-modding/            # 主力改模流程 + 10 篇专题手册 + 7 个 C#/Python 脚本
 │   ├── vrchat-project-audit-and-repair/  # 三层只读审计 + 症状分流 + 安全修复校验
 │   └── vrchat-clothing-rebuild/          # 实验性 Blender 重建脚本 + Unity 回灌器 + 无头 MCP 启动器
-├── unity-mcp/                            # 内置 AnkleBreaker Unity MCP 插件 (2.32.0) 与服务端 (2.30.0)
-├── blender-mcp/                          # 内置 MCP for Blender (2.3.1 wheel 与插件脚本)
 ├── assets/                               # 项目图标
 ├── config/                               # MCP 配置示例（Codex TOML、通用 JSON）
 ├── templates/                            # 通用跨会话改模交接模板（已脱敏）
@@ -144,9 +140,6 @@ vrchat-avatar-modding-skills/
 ```powershell
 # 可选客户端：codex | antigravity | cursor | all
 .\install.ps1 -Client codex
-
-# 可选：顺带安装 Unity MCP 的 Node 依赖和 Blender 插件
-.\install.ps1 -Client all -InstallUnityMcpDeps -InstallBlenderAddon
 ```
 
 **macOS / Linux：**
@@ -157,37 +150,22 @@ chmod +x install.sh
 
 ### 第 2 步：连接 Unity MCP
 
-1. 用工程要求的对应 Unity 版本打开你的 VRChat 工程。
-2. 在 Unity 中打开 `Window → Package Manager → + → Add package from disk...`，选择 [`unity-mcp/unity-mcp-plugin/package.json`](unity-mcp/unity-mcp-plugin/package.json)。
-3. 编译完成后打开 `Window → AB Unity MCP`，确认显示 `Server Running`（默认端口 `7890–7899`）。
-4. 安装锁定版本的 Node.js 依赖：
-   ```powershell
-   $toolkit = (Get-Location).Path
-   $unityDir = Join-Path $toolkit 'unity-mcp/unity-mcp-server'
-   $nodeExe = (Get-Command node.exe -ErrorAction Stop).Source
-   $unityEntry = Join-Path $unityDir 'src/index.js'
-   Push-Location -LiteralPath $unityDir
-   try { npm.cmd ci --omit=dev --ignore-scripts } finally { Pop-Location }
-   ```
-5. 在你的 AI 客户端中注册 Unity MCP：
-   - **Codex CLI**：`codex mcp add unity_mcp -- "$nodeExe" "$unityEntry"`（或合并 [`config/codex.config.example.toml`](config/codex.config.example.toml)）
-   - **Antigravity / Cursor / 通用 JSON 客户端**：合并 [`config/antigravity_mcp.example.json`](config/antigravity_mcp.example.json) 中的 `unity-mcp` 段落并替换本机路径。
-6. 重启客户端，让 AI 调用 `unity_list_instances` 确认已连上目标工程。
+已有可用的 Unity MCP 连接可以直接复用。如果旧配置指向本仓库内的 MCP 文件，请先按上游说明另行安装，再更新 Unity 工程和客户端的引用。
+
+1. 在 VRChat 工程中按[上游 Unity 插件安装说明](https://github.com/AnkleBreaker-Studio/unity-mcp-plugin#installation)安装插件，再按[上游 Node 服务端说明](https://github.com/AnkleBreaker-Studio/unity-mcp-server#get-started)安装服务端。服务端放在本仓库之外。
+2. 按客户端格式使用 [TOML 示例](config/codex.config.example.toml)中的 `unity_mcp` 或 [JSON 示例](config/antigravity_mcp.example.json)中的 `unity-mcp`，将入口替换为外部服务端 `src/index.js` 的绝对路径。
+3. 重启客户端或重新连接 MCP，调用 `unity_list_instances` 确认目标工程。
 
 ### 第 3 步：连接 Blender MCP（可选）
 
 1. 安装 **Blender** 与 **[uv](https://docs.astral.sh/uv/getting-started/installation/)**。
-2. 安装随包提供的 Blender 插件：
-   ```powershell
-   $toolkit = (Get-Location).Path
-   $uvxExe = (Get-Command uvx.exe -ErrorAction Stop).Source
-   $wheel = Join-Path $toolkit 'blender-mcp/mcp_for_blender-2.3.1-py3-none-any.whl'
-   & $uvxExe --from $wheel mcp-for-blender install-addon
+2. 从 [PyPI 上游包](https://pypi.org/project/mcp-for-blender/2.3.1/)安装 Blender 插件：
+   ```sh
+   uvx mcp-for-blender==2.3.1 install-addon
    ```
-   *（也可在 Blender `编辑 → 偏好设置 → 插件 → Install from Disk` 中直接选择 [`blender-mcp/mcp_for_blender_addon.py`](blender-mcp/mcp_for_blender_addon.py)。）*
 3. 在插件列表勾选启用 `MCP for Blender`，在 3D 视图按 `N` 打开侧栏点击 `Start MCP Server`（或用 [`blender_mcp_headless.py`](skills/vrchat-clothing-rebuild/scripts/blender_mcp_headless.py) 无界面后台启动）。
 4. 在客户端注册 Blender MCP：
-   - **Codex CLI**：`codex mcp add blender --env BLENDER_MCP_SAFE_MODE=1 --env DISABLE_TELEMETRY=true -- "$uvxExe" --from "$wheel" mcp-for-blender`
+   - **Codex CLI**：`codex mcp add blender --env BLENDER_MCP_SAFE_MODE=1 --env DISABLE_TELEMETRY=true -- uvx mcp-for-blender==2.3.1`
    - **Antigravity / Cursor / 通用 JSON 客户端**：参考 [`config/antigravity_mcp.example.json`](config/antigravity_mcp.example.json) 合并 `blender` 段落。
 
 ---
@@ -223,11 +201,13 @@ python -X utf8 scripts/package_skills.py
 
 ## 开源许可与第三方声明
 
-- 本仓库原创 Skills、脚本、配置模板与文档采用 **MIT License**（见 [`LICENSE`](LICENSE)）。
-- `skills/vrchat-avatar-modding/` 基于 [felixchaos/vrchat-avatar-modding-skill](https://github.com/felixchaos/vrchat-avatar-modding-skill)（**MIT License**）深度扩展。
-- `blender-mcp/` 随包提供自 Siddharth Ahuja 的 [mcp-for-blender 2.3.1](https://pypi.org/project/mcp-for-blender/2.3.1/)（**MIT License**）。
-- `unity-mcp/`：**Powered by AnkleBreaker MCP**（[unity-mcp-plugin](https://github.com/AnkleBreaker-Studio/unity-mcp-plugin) `2.32.0` · [unity-mcp-server](https://github.com/AnkleBreaker-Studio/unity-mcp-server) `2.30.0`），遵循 **AnkleBreaker Open License v1.0**（允许免费分发与集成，禁止商业转售）。完整声明见 [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)。
+| 组件 | 许可证 | 分发方式 |
+| --- | --- | --- |
+| 工具包原创文件 | [MIT](LICENSE) | 随仓库和相应分发包提供 |
+| 基于 [Felix 原作](https://github.com/felixchaos/vrchat-avatar-modding-skill)改编的核心 Skill | [MIT 及上游署名](skills/vrchat-avatar-modding/LICENSE) | 随包提供 |
+| Powered by AnkleBreaker MCP | [AnkleBreaker Open License v1.0](https://github.com/AnkleBreaker-Studio/unity-mcp-plugin/blob/main/LICENSE) | 按需从上游安装 |
+| [MCP for Blender](https://pypi.org/project/mcp-for-blender/2.3.1/) | MIT | 按需从上游安装 |
 
-<img src="unity-mcp/unity-mcp-plugin/icon.png" alt="Powered by AnkleBreaker MCP" width="96" />
+完整署名与上游许可证链接见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 
 > **提示**：请使用你本人合法获取的角色素体、服装、着色器及 VRChat SDK 资产；提交或分享前请勿包含商业模型资产、Blueprint ID 或个人账号信息。

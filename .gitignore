@@ -1,6 +1,3 @@
-# Node / Unity MCP Server dependencies (installed locally via npm ci)
-unity-mcp/unity-mcp-server/node_modules/
-
 # Python caches
 __pycache__/
 *.py[cod]

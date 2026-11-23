@@ -12,7 +12,6 @@ import subprocess
 import sys
 
 
-ROOT = Path(__file__).resolve().parent.parent
 EXPECTED_SKILLS = [
     "vrchat-avatar-modding",
     "vrchat-project-audit-and-repair",
@@ -94,15 +93,7 @@ def collect_checks() -> list[dict]:
         "name": "Node.js (>= 18, Unity MCP)",
         "status": "ok" if node_ok else "warn",
         "detail": node_ver or "not found",
-        "hint": "" if node_ok else "Install Node.js 18+ to run unity-mcp/unity-mcp-server.",
-    })
-
-    mcp_nm = ROOT / "unity-mcp" / "unity-mcp-server" / "node_modules"
-    checks.append({
-        "name": "Unity MCP server deps",
-        "status": "ok" if mcp_nm.is_dir() else "warn",
-        "detail": "installed" if mcp_nm.is_dir() else "node_modules missing",
-        "hint": "" if mcp_nm.is_dir() else "Run: cd unity-mcp/unity-mcp-server && npm ci --omit=dev --ignore-scripts",
+        "hint": "" if node_ok else "Install Node.js 18+ if using the AnkleBreaker Unity MCP server.",
     })
 
     uvx_exe = shutil.which("uvx")

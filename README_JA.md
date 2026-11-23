@@ -9,9 +9,7 @@
 
 [English](README.md) | [简体中文](README_CN.md) | **日本語**
 
-**Codex**・**Antigravity**・**Cursor** などの Agent Skills / MCP 対応 AI アシスタントを使って、Unity での着せ替え・ギミック導入・PSD/AI テクスチャ改変・最適化から Blender での衣装リビルドまでを、安全かつ非破壊で進めるためのオールインワンツールキットです。
-
-単なるプロンプト集ではなく、**Unity / Blender を直接操作する MCP ブリッジ**、**検証済みの C# / Python 補助スクリプト**、**VRChat 改変の標準手順書（Skills）** を一体化したワークフローを提供します。
+Codex、Antigravity、Cursor などで使える VRChat アバター改変向けの三つの Skills と C# / Python 補助スクリプトです。Unity と Blender の MCP は、必要に応じて各配布元から個別に導入します。
 
 ---
 
@@ -23,7 +21,7 @@
 | **Expression Menu・パラメータ・FX 制御** | 独立トグル（`Bool`）、排他選択（`Int`）、連動制御（帽子着用時に耳を隠し脱ぐと復帰するなど）、手持ちアイテム排他、パラメータ名を壊さないメニュー翻訳、1 ページ 8 項目・同期パラメータ 256-bit 上限の自動監査。 |
 | **テクスチャ・PSD 改変（PSD 優先 + Pillow + GPT Image）** | レイヤー編集には位置が一致する PSD を使用。PNG を直接編集する場合は Pillow で階調や透過文字を処理し、描き起こしには GPT Image とマスク合成を使用します。 |
 | **ギミック・ライティング・軽量化** | 手持ちプロップ・Contact・Constraint の姿勢合わせ、`probeAnchor` やマテリアル受光の統一、重複 PhysBone・パーティクル上限・Mip Streaming・Write Defaults・SDK ビルド/アップロードエラーの切り分け。 |
-| **Blender 補助操作 ＆ 衣装リビルド（実験的）** | メッシュ検査・構造確認・補助編集用に Blender MCP を搭載。実験的機能として、UV・ウェイトを保持して胴体フィットを再構築する `vrchat-clothing-rebuild`（明示指定時のみ）を同梱していますが、貫通・動的ポーズの目視確認が必要です。 |
+| **Blender 補助操作 ＆ 衣装リビルド（実験的）** | メッシュ検査・構造確認・補助編集に別途導入した Blender MCP を利用できます。実験的機能として、UV・ウェイトを保持して胴体フィットを再構築する `vrchat-clothing-rebuild`（明示指定時のみ）を同梱していますが、貫通・動的ポーズの目視確認が必要です。 |
 | **読み取り専用監査 ＆ 安全修復** | ファイルを一切変更せずにシーン・Prefab オーバーライド・GUID/fileID 参照・Animator カーブ・NDMF ビルド出力を調査し、明示指示時のみ作業領域内で最小限の修復と参照ゼロ資産のクリーンアップを実行。 |
 
 ---
@@ -49,7 +47,7 @@ flowchart LR
 ```
 
 ### 1. 非破壊・ロールバック可能な Unity 自動化
-- **Unity MCP によるライブ操作**：同梱の **AnkleBreaker Unity MCP** により、AI が起動中の Unity エディタへ直接接続して `VRCAvatarDescriptor`、Modular Avatar コンポーネント、マテリアル、Animator 構成を正確に読み取り、必要に応じて C# スニペット実行やキャプチャ確認を行います。
+- **Unity MCP によるライブ操作**：**AnkleBreaker Unity MCP** を接続すると、AI が起動中の Unity エディタへ直接接続して `VRCAvatarDescriptor`、Modular Avatar コンポーネント、マテリアル、Animator 構成を正確に読み取り、必要に応じて C# スニペット実行やキャプチャ確認を行います。
 - **完全バージョン分離**：BOOTH 等で購入した元アセットは変更しません。すべての編集は `Assets/VRCWork/` 配下のバージョン別シーン・コピーアセットで行い、`AssetDatabase.SaveAssetIfDirty` で対象資産のみ保存するためいつでも前の版へ戻せます。
 - **3 層検証**：**(1) 静的 YAML/GUID**、**(2) Unity エディタ解析状態**、**(3) NDMF / Modular Avatar / AAO ビルド後状態** を分けて検証します。アニメーションや姿勢確認は一時クローン上で行い、作業シーンのレストポーズを汚しません。
 - **同梱 C# ユーティリティ**：[`VrcAvatarIntegration.cs`](skills/vrchat-avatar-modding/scripts/VrcAvatarIntegration.cs) と [`VrcMaterialSwap.cs`](skills/vrchat-avatar-modding/scripts/VrcMaterialSwap.cs) により、クリップ/コントローラー複製、ライティング項目コピー、静止形状を保つバインドポーズ再計算、作業マテリアル限定のテクスチャ差し替えを安全に実行します。
@@ -90,12 +88,12 @@ flowchart LR
 | --- | --- | --- |
 | **AI クライアント**（Codex / Antigravity / Cursor 等） | 必須 | 3 つの Skills 読み込みと MCP サーバー接続。 |
 | **Unity Editor + VRChat SDK3 (Avatars)** | Unity 作業時に必要 | `ProjectSettings/ProjectVersion.txt` 一致バージョン。Modular Avatar / NDMF / lilToon・Poiyomi / Gesture Manager / Avatar Optimizer 推奨。 |
-| **Node.js >= 18** | Unity MCP に必須 | 同梱 `unity-mcp/unity-mcp-server` の実行（Node.js 24 で検証済み）。 |
+| **Node.js >= 18** | AnkleBreaker Unity MCP を使う場合 | 個別に導入する Node サーバーの実行に使用します。 |
 | **Python >= 3.10** | CLI ツールに必須 | オフライン監査・ログ要約・テクスチャツール・衣装スクリプト・`doctor.py` の実行。 |
 | **Pillow（`pip install pillow`）** | Pillow ツール使用時のみ | `vrc_texture_tool.py`（`recolor` / `composite` / `clean-bg` / `compare`）に必要。 |
 | **Photoshop 等 PSD エディタ（または `psd-tools`）** | PSD 編集時に推奨 | レイヤー保持状態での `.psd` 編集と書き出し。 |
 | **OpenAI 互換 Images API キー** | 任意（API 直接生成時） | `vrc_gpt_texture_edit.py` で直接 API を叩く場合のみ環境変数で指定。ホスト画像ツールやプロンプト運用では不要。 |
-| **Blender + `uv`（`uvx`）** | 任意（検査 / 実験的リビルド） | モデル検査や実験的リビルドは Blender 単体で実行可能。uvx は同梱 Blender MCP サーバー起動時のみ必要です。 |
+| **Blender + `uv`（`uvx`）** | 任意（検査 / 実験的リビルド） | Blender 単体で実験的なフィット調整を実行できます。`uvx` は Blender MCP の利用時に使います。 |
 
 リポジトリルートで以下のコマンドを実行すると、不足ツールと導入手順を一覧チェックできます：
 
@@ -119,8 +117,6 @@ vrchat-avatar-modding-skills/
 │   ├── vrchat-avatar-modding/            # 改変メインフロー + リファレンス 10 本 + C#/Python スクリプト 7 本
 │   ├── vrchat-project-audit-and-repair/  # 3 層読み取り専用監査 + 症状診断 + 安全修復チェックリスト
 │   └── vrchat-clothing-rebuild/          # 実験的 Blender リビルド手順 + Unity 反映器 + ヘッドレス起動器
-├── unity-mcp/                            # 同梱 AnkleBreaker Unity MCP プラグイン (2.32.0) ＆ サーバー (2.30.0)
-├── blender-mcp/                          # 同梱 MCP for Blender (2.3.1 wheel ＆ アドオン)
 ├── assets/                               # プロジェクトアイコン
 ├── config/                               # MCP 設定サンプル（Codex TOML / 汎用 JSON）
 ├── templates/                            # 複数セッション引き継ぎテンプレート（汎用版）
@@ -144,9 +140,6 @@ vrchat-avatar-modding-skills/
 ```powershell
 # 指定先：codex | antigravity | cursor | all
 .\install.ps1 -Client codex
-
-# オプション：Unity MCP の Node 依存と Blender アドオンも一括導入
-.\install.ps1 -Client all -InstallUnityMcpDeps -InstallBlenderAddon
 ```
 
 **macOS / Linux：**
@@ -157,37 +150,22 @@ chmod +x install.sh
 
 ### ステップ 2：Unity MCP を接続
 
-1. プロジェクト指定の Unity バージョンでプロジェクトを開きます。
-2. Unity の `Window -> Package Manager -> + -> Add package from disk...` から [`unity-mcp/unity-mcp-plugin/package.json`](unity-mcp/unity-mcp-plugin/package.json) を読み込みます。
-3. コンパイル後、`Window -> AB Unity MCP` を開き `Server Running`（既定ポート `7890–7899`）を確認します。
-4. ロック済みの Node.js 依存をインストールします：
-   ```powershell
-   $toolkit = (Get-Location).Path
-   $unityDir = Join-Path $toolkit 'unity-mcp/unity-mcp-server'
-   $nodeExe = (Get-Command node.exe -ErrorAction Stop).Source
-   $unityEntry = Join-Path $unityDir 'src/index.js'
-   Push-Location -LiteralPath $unityDir
-   try { npm.cmd ci --omit=dev --ignore-scripts } finally { Pop-Location }
-   ```
-5. AI クライアントに Unity MCP を登録します：
-   - **Codex CLI**：`codex mcp add unity_mcp -- "$nodeExe" "$unityEntry"`（または [`config/codex.config.example.toml`](config/codex.config.example.toml) をマージ）
-   - **Antigravity / Cursor / 汎用 JSON クライアント**：[`config/antigravity_mcp.example.json`](config/antigravity_mcp.example.json) の `unity-mcp` 項目をローカルパスに書き換えてマージします。
-6. クライアントを再起動し、`unity_list_instances` で接続を確認します。
+既存の Unity MCP 接続はそのまま使えます。以前の設定がこのリポジトリ内の MCP ファイルを参照している場合は、配布元から個別に導入し、Unity プロジェクトとクライアントの参照先を更新してください。
+
+1. VRChat プロジェクトに[配布元の手順](https://github.com/AnkleBreaker-Studio/unity-mcp-plugin#installation)で Unity プラグインを導入します。[Node サーバーの手順](https://github.com/AnkleBreaker-Studio/unity-mcp-server#get-started)に従い、サーバーはこのリポジトリの外に置きます。
+2. クライアントに応じて [TOML の例](config/codex.config.example.toml)の `unity_mcp`、または [JSON の例](config/antigravity_mcp.example.json)の `unity-mcp` を使い、外部サーバーの `src/index.js` を絶対パスで指定します。
+3. クライアントを再起動するか MCP に再接続し、`unity_list_instances` で対象プロジェクトを確認します。
 
 ### ステップ 3：Blender MCP を接続（任意）
 
 1. **Blender** と **[uv](https://docs.astral.sh/uv/getting-started/installation/)** をインストールします。
-2. 同梱 wheel から Blender アドオンをインストールします：
-   ```powershell
-   $toolkit = (Get-Location).Path
-   $uvxExe = (Get-Command uvx.exe -ErrorAction Stop).Source
-   $wheel = Join-Path $toolkit 'blender-mcp/mcp_for_blender-2.3.1-py3-none-any.whl'
-   & $uvxExe --from $wheel mcp-for-blender install-addon
+2. [PyPI の配布元パッケージ](https://pypi.org/project/mcp-for-blender/2.3.1/)から Blender アドオンをインストールします。
+   ```sh
+   uvx mcp-for-blender==2.3.1 install-addon
    ```
-   *（Blender の `プリファレンス -> アドオン -> ディスクからインストール` で [`blender-mcp/mcp_for_blender_addon.py`](blender-mcp/mcp_for_blender_addon.py) を直接入れることもできます。）*
 3. `MCP for Blender` を有効化し、3D ビューポートで `N` → サイドバーの `Start MCP Server` を押します（GUI 無しで動かす場合は [`blender_mcp_headless.py`](skills/vrchat-clothing-rebuild/scripts/blender_mcp_headless.py) を使用）。
 4. クライアントへ登録します：
-   - **Codex CLI**：`codex mcp add blender --env BLENDER_MCP_SAFE_MODE=1 --env DISABLE_TELEMETRY=true -- "$uvxExe" --from "$wheel" mcp-for-blender`
+   - **Codex CLI**：`codex mcp add blender --env BLENDER_MCP_SAFE_MODE=1 --env DISABLE_TELEMETRY=true -- uvx mcp-for-blender==2.3.1`
    - **Antigravity / Cursor / 汎用 JSON クライアント**：[`config/antigravity_mcp.example.json`](config/antigravity_mcp.example.json) の `blender` 項目をマージします。
 
 ---
@@ -223,11 +201,13 @@ python -X utf8 scripts/package_skills.py
 
 ## ライセンスと権利表記
 
-- 本リポジトリのオリジナル Skills・スクリプト・テンプレート・ドキュメント：**MIT License**（[`LICENSE`](LICENSE)）
-- `skills/vrchat-avatar-modding/`：[felixchaos/vrchat-avatar-modding-skill](https://github.com/felixchaos/vrchat-avatar-modding-skill)（**MIT License**）をベースに拡張
-- `blender-mcp/`：Siddharth Ahuja 氏による [mcp-for-blender 2.3.1](https://pypi.org/project/mcp-for-blender/2.3.1/)（**MIT License**）を同梱
-- `unity-mcp/`：**Powered by AnkleBreaker MCP**（[unity-mcp-plugin](https://github.com/AnkleBreaker-Studio/unity-mcp-plugin) `2.32.0` ・ [unity-mcp-server](https://github.com/AnkleBreaker-Studio/unity-mcp-server) `2.30.0`）。**AnkleBreaker Open License v1.0**（無料配布・統合は許可、商用転売は禁止）が適用されます。詳細は [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) をご確認ください。
+| コンポーネント | ライセンス | 配布方法 |
+| --- | --- | --- |
+| ツールキットのオリジナルファイル | [MIT](LICENSE) | リポジトリに収録 |
+| [Felix 氏の原作](https://github.com/felixchaos/vrchat-avatar-modding-skill)をもとにした改変 Skill | [MIT および原作の権利表記](skills/vrchat-avatar-modding/LICENSE) | 同梱 |
+| Powered by AnkleBreaker MCP | [AnkleBreaker Open License v1.0](https://github.com/AnkleBreaker-Studio/unity-mcp-plugin/blob/main/LICENSE) | 配布元から任意で導入 |
+| [MCP for Blender](https://pypi.org/project/mcp-for-blender/2.3.1/) | MIT | 配布元から任意で導入 |
 
-<img src="unity-mcp/unity-mcp-plugin/icon.png" alt="Powered by AnkleBreaker MCP" width="96" />
+権利表記と配布元のライセンスは [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) を参照してください。
 
 > **ご注意**：アバター素体・衣装・シェーダー・VRChat SDK は必ず正当に入手したものをご利用ください。商用アセット・Blueprint ID・認証情報はリポジトリに含めないでください。
