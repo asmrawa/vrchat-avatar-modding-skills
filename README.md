@@ -1,4 +1,7 @@
-# VRChat Avatar Modding Skills & MCP Toolkit
+<div align="center">
+  <img src="assets/icon.png" alt="VRChat Avatar Modding Skills" width="128" />
+  <h1>VRChat Avatar Modding Skills & MCP Toolkit</h1>
+</div>
 
 [![Toolkit QA & Tests](https://github.com/asmrawa/vrchat-avatar-modding-skills/actions/workflows/ci.yml/badge.svg)](https://github.com/asmrawa/vrchat-avatar-modding-skills/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -52,10 +55,10 @@ flowchart LR
 - **Bundled C# Primitives**: Reusable helpers ([`VrcAvatarIntegration.cs`](skills/vrchat-avatar-modding/scripts/VrcAvatarIntegration.cs), [`VrcMaterialSwap.cs`](skills/vrchat-avatar-modding/scripts/VrcMaterialSwap.cs)) handle clip/controller cloning, float-allowlist lighting copies, rest-pose-invariant skin rebinding, and safe material swaps.
 
 ### 2. How Texture & PSD Editing Works (PSD-First Pipeline)
-Texture changes follow one unified pipeline in [`psd-texture-workflow.md`](skills/vrchat-avatar-modding/references/psd-texture-workflow.md):
+Choose the editable source using [the UV texture guide](skills/vrchat-avatar-modding/references/psd-texture-workflow.md).
 1. **Locate the true texture in Unity**: Identify the exact renderer, submesh, material slot, shader properties (`_MainTex`, `_EmissionMap`, overlays), and any FX animation curves swapping materials on that slot.
-2. **PSD First (when a matching `.psd` exists)**: Copy the registered `.psd` into a versioned work file and edit via independent layers and masks—**never flattening author groups, line art, or shading**—so you can always open the PSD in Photoshop later and keep tweaking it yourself.
-3. **Flattened PNG / AI-Assisted Editing (when no PSD exists, or when painting new motifs)**:
+2. **Layered deliverable**. Prefer a versioned copy of a registered PSD. Compare its composite with the approved atlas and preserve existing line art, groups and masks.
+3. **Choose the operation**. For a direct PNG change, start with the approved atlas. Use Pillow for exact color or glyph edits and GPT Image for new artwork. Either can supply artwork for a PSD layer.
    - **Color / palette shift**: [`vrc_texture_tool.py`](skills/vrchat-avatar-modding/scripts/vrc_texture_tool.py) `recolor` maps source luminance to a new shadow/midtone/highlight ramp inside a grayscale mask.
    - **Transparent decals & lettering**: `vrc_texture_tool.py composite --decal` blends a source-sized RGBA layer through the island mask without creating opaque backing boxes.
    - **New painted art (irises, hair highlights, embroidery)**: [`vrc_gpt_texture_edit.py`](skills/vrchat-avatar-modding/scripts/vrc_gpt_texture_edit.py) (or a host image tool / prompt-only ChatGPT workflow) edits the original atlas using dual masks (an API guidance mask + a pixel-exact delivery mask). The result can be placed onto a new masked PSD layer or composited onto the PNG after `clean-bg` gutter cleanup.
@@ -78,13 +81,13 @@ For outfits that no longer match a modified torso silhouette ([`vrchat-clothing-
 | Component | Status | Why It Is Needed |
 | --- | --- | --- |
 | **AI Client** (Codex / Antigravity / Cursor / compatible client) | Required | Loads the 3 Agent Skills and connects to MCP servers. |
-| **Unity Editor + VRChat SDK3 (Avatars)** | Required | Your VRChat project (exact Unity version in `ProjectSettings/ProjectVersion.txt`). Modular Avatar, NDMF, lilToon/Poiyomi, Gesture Manager, and Avatar Optimizer are recommended. |
+| **Unity Editor + VRChat SDK3 (Avatars)** | For Unity work | Your VRChat project (exact Unity version in `ProjectSettings/ProjectVersion.txt`). Modular Avatar, NDMF, lilToon/Poiyomi, Gesture Manager, and Avatar Optimizer are recommended. |
 | **Node.js >= 18** | Required for Unity MCP | Runs the bundled `unity-mcp/unity-mcp-server` Node bridge (verified on Node.js 24). |
 | **Python >= 3.10** | Required for CLI tools | Runs offline Blueprint/budget/log audits, texture tools, clothing scripts, and `doctor.py`. |
-| **Pillow (`pip install pillow`)** | Optional (Texture editing) | Required by `vrc_texture_tool.py` (`recolor`, `composite`, `clean-bg`, `compare`). |
+| **Pillow (`pip install pillow`)** | For the Pillow CLI | Required by `vrc_texture_tool.py` (`recolor`, `composite`, `clean-bg`, `compare`). |
 | **Photoshop / PSD editor (or `psd-tools`)** | Optional (PSD editing) | Recommended for interactive layered `.psd` editing and exporting. |
 | **OpenAI-compatible Images API Key** | Optional (Mode A AI art) | Only needed for direct API calls via `vrc_gpt_texture_edit.py`; Mode B (host image tool) and Mode C (prompt-only) need no API key. |
-| **Blender + `uv` (`uvx`)** | Optional (Mesh/clothing) | Required only for Blender MCP and `vrchat-clothing-rebuild`. |
+| **Blender + `uv` (`uvx`)** | Optional (Mesh/clothing) | Blender runs the fitter directly. uvx is needed for the bundled MCP server. |
 
 Check everything installed on your machine in one command:
 
@@ -110,6 +113,7 @@ vrchat-avatar-modding-skills/
 │   └── vrchat-clothing-rebuild/          # Blender rebuild pipeline + Unity importer + headless MCP
 ├── unity-mcp/                            # Bundled AnkleBreaker Unity MCP plugin (2.32.0) & server (2.30.0)
 ├── blender-mcp/                          # Bundled MCP for Blender (2.3.1 wheel + add-on)
+├── assets/                               # Project emblem / icon
 ├── config/                               # MCP config examples (Codex TOML, generic JSON)
 ├── templates/                            # Sanitized multi-session handoff template
 ├── scripts/                              # doctor.py, validate_toolkit.py, package_skills.py
@@ -124,7 +128,7 @@ vrchat-avatar-modding-skills/
 
 ## Quick Start
 
-Clone the repository (or download individual skill ZIPs from [GitHub Releases](https://github.com/asmrawa/vrchat-avatar-modding-skills/releases)) into a fixed folder such as `C:/Tools/vrchat-avatar-modding-skills`. Run commands below from the repo root.
+Clone the repository (or download the all-in-one Skills bundle `vrchat-avatar-modding-skills.zip` from [GitHub Releases](https://github.com/asmrawa/vrchat-avatar-modding-skills/releases)) into a fixed folder such as `C:/Tools/vrchat-avatar-modding-skills`. Run commands below from the repo root.
 
 ### Step 1: Install the Skills
 
@@ -188,8 +192,8 @@ chmod +x install.sh
 **2. Add a new outfit with wardrobe toggles:**
 > Use `vrchat-avatar-modding`. Save a new versioned work scene under `Assets/VRCWork/`, integrate the imported outfit prefab with Modular Avatar while keeping original toggles working, check NDMF baked bones and the 256-bit parameter budget, and summarize what was verified.
 
-**3. Edit avatar textures (PSD-first):**
-> Use `vrchat-avatar-modding` (`psd-texture-workflow.md`). Locate the active renderer, material slot, and texture in Unity first. If a matching `.psd` exists, edit a versioned PSD copy using non-destructive layers and masks without flattening; otherwise use `vrc_texture_tool.py` / GPT Image local edit with masked compositing, verify pixels and color metadata, and preview on a work material in Unity.
+**3. Edit an avatar texture:**
+> Locate the visible material and its current atlas. Keep a layered source for future editing when requested. For this PNG edit, preserve protected pixels and alpha, and show a close-up of the result on the work material.
 
 **4. Rebuild torso-fitted clothing in Blender:**
 > Use `vrchat-clothing-rebuild`. Inspect the target body and garment islands in Blender, configure a torso-fit rebuild with 3-angle orthographic previews, and wait for my review before importing into Unity.

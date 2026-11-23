@@ -57,9 +57,12 @@
   - `work_root` (optional, default `"Assets/VRCWork"`): Safety boundary under `Assets/` where `scene`, `work_mesh`, and the temporary `Editor/VrcClothingRebuildOneShot.cs` script are allowed to write.
   - `overwrite_mesh` (optional, default `false`): When `false`, the Unity importer refuses to overwrite an existing `work_mesh` asset so a re-run never silently reuses stale geometry. Use a new versioned `work_mesh` filename or set `overwrite_mesh: true` explicitly when replacing a draft.
   - `fbx` / `expected_unity_vertices` / `expected_bones`: Guardrails verifying the source FBX and rig match the inspected baseline (`subMeshCount == 1` required).
+  - `mesh_asset` (optional): Path to the actual Unity source mesh asset, such as an accepted fitted `.asset` or an FBX containing a mesh sub-asset. This takes precedence over `fbx`. Keep `work_mesh` at a different path.
+  - `mesh_name` and `renderer_path` (optional): The exact Unity mesh object name in that asset and the hierarchy path relative to `avatar_root`, such as `Outfit/Inner/Visible`. Both default to `garment_object` for older configurations. The Blender manifest still identifies its own `garment_object`. If the renderer points to a different mesh than expected, recheck the registered baseline before applying.
 
 ## Outputs & Stopped Runs
 
 - **Blender stage** writes `fitted.blend`, `after_front.png`, `after_side.png`, `after_quarter.png`, `source.tsv`, `target.tsv`, `normals.tsv`, `removed_indices.txt`, and `manifest.json` into `output_dir`.
 - **Unity stage** refuses paths outside the Unity project or `work_root`, backs up the work scene into `output_dir` before staging `VrcClothingRebuildOneShot.cs`, and waits for `unity_import_report.txt`.
 - If `install_unity.py` prints `STAGED_ONLY`, Unity either was closed, had a different active scene, was in Play Mode, or hit a compile error—inspect Unity Console and do not claim import completion until `OK|...` appears and the mesh asset exists on disk.
+- A staged importer checks the active Edit Mode scene after compilation and when its matching scene becomes active. If a report and asset exist, close and reopen the test scene before reading the renderer reference. Editor state after script refresh can show a dirty flag even after a successful save. Use the on-disk asset and scene reference to establish persistence.

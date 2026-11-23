@@ -5,7 +5,7 @@ description: "Read-only audit and explicit-only safe repair for VRChat Unity ava
 
 # VRChat Project Audit And Safe Repair
 
-Audit first and stay strictly read-only by default. Repair or clean up assets **only** when the user explicitly requests a change. Inspect every project across three layers: **static Unity serialization** for fast discovery, **Unity-resolved object state** (via Unity MCP or batch mode) for exact semantics, and **build-resolved output** for final VRChat behaviour.
+Audit first and stay strictly read-only by default. Repair or clean up assets **only** when the user explicitly requests a change. Use the evidence layer needed for the question: **static Unity serialization** for fast discovery, **Unity-resolved object state** (via Unity MCP or batch mode) for exact semantics, and **build-resolved output** for the packaged avatar. Report in-game behaviour separately when tested.
 
 ## Operating Contract
 
@@ -53,7 +53,7 @@ For broad read-only audits with independent leads (e.g., menus/FX vs. renderers/
 Use Unity only when static files cannot reliably answer the question (resolved prefab hierarchies, imported FBX sub-assets, private serialized fields, component types, inactive objects, Animator sub-assets, or plugin transformations). Read [references/unity-editor-inspection.md](references/unity-editor-inspection.md) first.
 
 - **If Unity MCP is connected**: Call `unity_list_instances`, select the verified instance, pass `port` on every call, and verify project path and active scene with `unity_editor_state` before running read-only queries.
-- **If using offline batch mode**: Use the exact Unity executable matching `ProjectVersion.txt`, confirm no other Unity process locks the project, compile a uniquely named temporary inspector in pass 1, run `-executeMethod` in pass 2, emit JSON + completion marker to `Temp/VrcReports/`, and delete the temporary inspector + `.meta` only after all Unity processes exit.
+- **If using offline batch mode**: Use the exact Unity executable matching `ProjectVersion.txt`, use a disposable project copy for an inspection that needs to stage a script, confirm no Unity process locks that copy, compile a uniquely named temporary inspector in pass 1, run `-executeMethod` in pass 2, emit JSON + completion marker to `Temp/VrcReports/`, and delete the temporary inspector + `.meta` only after all Unity processes exit.
 - Always include inactive objects (`GetComponentsInChildren<T>(true)`).
 - Do not call `SaveScene`, `SaveAssets`, or prefab save APIs during read-only inspection.
 - Treat compilation errors, project locks, or missing completion markers as failures—not isolated licensing or package-update log noise when the report succeeded.

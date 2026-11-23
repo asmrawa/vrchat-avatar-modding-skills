@@ -34,17 +34,22 @@ def csharp_escape(value: str) -> str:
     return value.replace('\\', '\\\\').replace('"', '\\"')
 
 
+def source_mesh_asset(unity: dict) -> str:
+    return unity['mesh_asset'] if 'mesh_asset' in unity else unity['fbx']
+
+
 def render_importer(config: dict, manifest: dict, out: Path, overwrite_mesh: bool) -> str:
     unity = config['unity']
     fit = config['fit']
     template = (Path(__file__).parent / 'UnityClothingRebuildOneShot.cs.in').read_text(encoding='utf-8-sig')
     replacements = {
         '__SCENE_PATH__': csharp_escape(unity['scene'].replace('\\', '/')),
-        '__FBX_PATH__': csharp_escape(unity['fbx'].replace('\\', '/')),
+        '__MESH_ASSET_PATH__': csharp_escape(source_mesh_asset(unity).replace('\\', '/')),
         '__WORK_MESH_PATH__': csharp_escape(unity['work_mesh'].replace('\\', '/')),
         '__DATA_PATH__': csharp_escape(str(out)),
         '__AVATAR_ROOT__': csharp_escape(unity['avatar_root']),
-        '__GARMENT_NAME__': csharp_escape(config['garment_object']),
+        '__RENDERER_PATH__': csharp_escape(unity.get('renderer_path', config['garment_object'])),
+        '__SOURCE_MESH_NAME__': csharp_escape(unity.get('mesh_name', config['garment_object'])),
         '__OUTPUT_MESH_NAME__': csharp_escape(Path(unity['work_mesh']).stem),
         '__UNITY_VERTICES__': str(unity['expected_unity_vertices']),
         '__BLENDER_VERTICES__': str(manifest['source_vertices']),
@@ -87,10 +92,12 @@ def main():
     if not all((project / folder).is_dir() for folder in ('Assets', 'Packages', 'ProjectSettings')):
         raise RuntimeError('Not a Unity project')
     scene = asset_path(project, unity['scene'], work_root=work_root)
-    fbx = asset_path(project, unity['fbx'])
+    mesh_asset = asset_path(project, source_mesh_asset(unity))
     work_mesh = asset_path(project, unity['work_mesh'], work_root=work_root)
-    if not scene.is_file() or not fbx.is_file():
-        raise FileNotFoundError('Work scene or source FBX is missing')
+    if not scene.is_file() or not mesh_asset.is_file():
+        raise FileNotFoundError('Work scene or source mesh asset is missing')
+    if work_mesh == mesh_asset:
+        raise ValueError('Work mesh must have a different path from the source mesh')
     if manifest['garment'] != config['garment_object'] or \
             manifest['source_vertices'] != manifest['target_vertices'] or \
             manifest['uv_layers'] < 1 or manifest['material_slots'] < 1:

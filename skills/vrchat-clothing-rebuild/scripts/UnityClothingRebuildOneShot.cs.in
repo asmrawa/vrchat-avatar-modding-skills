@@ -12,12 +12,24 @@ using UnityEngine;
 public static class VrcClothingRebuildOneShot
 {
     private const string ScenePath = "__SCENE_PATH__";
-    private const string FbxPath = "__FBX_PATH__";
+    private const string SourceMeshPath = "__MESH_ASSET_PATH__";
+    private const string SourceMeshName = "__SOURCE_MESH_NAME__";
+    private const string RendererPath = "__RENDERER_PATH__";
     private const string OutputPath = "__WORK_MESH_PATH__";
     private const string DataPath = "__DATA_PATH__";
     private const bool OverwriteMesh = __OVERWRITE_MESH__;
 
-    static VrcClothingRebuildOneShot() { EditorApplication.delayCall += ApplyOnce; }
+    static VrcClothingRebuildOneShot()
+    {
+        EditorApplication.delayCall += ApplyOnce;
+        EditorSceneManager.activeSceneChangedInEditMode += OnActiveSceneChanged;
+    }
+
+    private static void OnActiveSceneChanged(UnityEngine.SceneManagement.Scene previous,
+        UnityEngine.SceneManagement.Scene current)
+    {
+        if (current.path == ScenePath) EditorApplication.delayCall += ApplyOnce;
+    }
 
     private static Vector3[] ReadVectors(string filename, int count)
     {
@@ -38,16 +50,21 @@ public static class VrcClothingRebuildOneShot
         var scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
         if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || scene.path != ScenePath) return;
         string reportPath = Path.Combine(DataPath, "unity_import_report.txt");
+        EditorSceneManager.activeSceneChangedInEditMode -= OnActiveSceneChanged;
+        if (File.Exists(reportPath)) return;
         try
         {
             var root = scene.GetRootGameObjects().First(go => go.name == "__AVATAR_ROOT__");
-            var targetTransform = root.transform.Find("__GARMENT_NAME__");
-            if (targetTransform == null) throw new InvalidOperationException("Garment transform not found under avatar root: __GARMENT_NAME__");
+            var targetTransform = root.transform.Find(RendererPath);
+            if (targetTransform == null) throw new InvalidOperationException("Garment transform not found under avatar root: " + RendererPath);
             var renderer = targetTransform.GetComponent<SkinnedMeshRenderer>();
-            if (renderer == null) throw new InvalidOperationException("SkinnedMeshRenderer missing on: __GARMENT_NAME__");
+            if (renderer == null) throw new InvalidOperationException("SkinnedMeshRenderer missing on: " + RendererPath);
 
-            var original = AssetDatabase.LoadAllAssetsAtPath(FbxPath).OfType<Mesh>()
-                .First(m => m.name == "__GARMENT_NAME__");
+            var original = AssetDatabase.LoadAllAssetsAtPath(SourceMeshPath).OfType<Mesh>()
+                .Single(m => m.name == SourceMeshName);
+            var assignedPath = AssetDatabase.GetAssetPath(renderer.sharedMesh);
+            if (renderer.sharedMesh != original && (!OverwriteMesh || assignedPath != OutputPath))
+                throw new InvalidOperationException("Target renderer does not use the expected source or work mesh.");
             if (original.vertexCount != __UNITY_VERTICES__ || renderer.bones.Length != __BONE_COUNT__ || original.subMeshCount != 1)
                 throw new InvalidOperationException("Garment source mesh, submesh count, or rig changed.");
 
@@ -111,13 +128,10 @@ public static class VrcClothingRebuildOneShot
             if (removed < __MIN_REMOVED_TRIANGLES__ || removed > __MAX_REMOVED_TRIANGLES__)
                 throw new InvalidDataException("Unexpected removed triangle count: " + removed);
 
-            var existing = AssetDatabase.LoadAssetAtPath<Mesh>(OutputPath);
-            if (existing != null)
-            {
-                if (!OverwriteMesh)
-                    throw new InvalidOperationException("Work mesh already exists; choose a new versioned path or enable overwrite_mesh: " + OutputPath);
-                AssetDatabase.DeleteAsset(OutputPath);
-            }
+            var occupant = AssetDatabase.LoadMainAssetAtPath(OutputPath);
+            var existing = occupant as Mesh;
+            if (File.Exists(OutputPath) && (existing == null || !OverwriteMesh))
+                throw new InvalidOperationException("Choose a fresh work_mesh path or explicitly replace a work mesh: " + OutputPath);
 
             string outputDir = Path.GetDirectoryName(OutputPath).Replace('\\', '/');
             if (!AssetDatabase.IsValidFolder(outputDir))
@@ -151,7 +165,17 @@ public static class VrcClothingRebuildOneShot
                 fitted.boneWeights.Length != original.boneWeights.Length ||
                 fitted.uv.Length != original.uv.Length)
                 throw new InvalidOperationException("Skinning or UV transfer failed.");
-            AssetDatabase.CreateAsset(fitted, OutputPath);
+            if (existing == null)
+                AssetDatabase.CreateAsset(fitted, OutputPath);
+            else
+            {
+                // Preserve references to this work mesh when replacing its geometry.
+                Undo.RegisterCompleteObjectUndo(existing, "Replace rebuilt mesh");
+                EditorUtility.CopySerialized(fitted, existing);
+                UnityEngine.Object.DestroyImmediate(fitted);
+                fitted = existing;
+                EditorUtility.SetDirty(fitted);
+            }
 
             Undo.RecordObject(renderer, "Assign rebuilt garment mesh");
             renderer.sharedMesh = fitted;

@@ -218,14 +218,38 @@ private static int HideRenderersUnder(Transform root)
 
 ## Baked Bone Audit
 
+Create and activate an empty additive scene **before** calling `Instantiate`. Moving a newly created clone out of the source scene can already have marked that scene dirty. Verify the source is unchanged and restore the user's active scene without clearing its existing dirty flag. If Unity refuses another additive scene because an untitled scene is open, report the blocker without saving or closing that scene.
+
+This example uses `UnityEditor.SceneManagement` and the platform-aware NDMF API. On older NDMF versions, check the installed API and use its equivalent scoped build entry point.
+
 ```csharp
 private static void AuditBaked(GameObject avatarRoot, StringBuilder report)
 {
-    var duplicate = UnityEngine.Object.Instantiate(avatarRoot);
-    duplicate.name = "AvatarWork_BakedAudit";
+    var previousScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+    var previousSelection = Selection.objects;
+    var auditScene = new UnityEngine.SceneManagement.Scene();
     try
     {
-        AvatarProcessor.ProcessAvatar(duplicate);
+        auditScene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
+        if (UnityEngine.SceneManagement.SceneManager.GetActiveScene() != auditScene)
+            UnityEngine.SceneManagement.SceneManager.SetActiveScene(auditScene);
+        if (UnityEngine.SceneManagement.SceneManager.GetActiveScene() != auditScene)
+            throw new InvalidOperationException("Could not activate the disposable audit scene.");
+
+        var duplicate = UnityEngine.Object.Instantiate(avatarRoot);
+        duplicate.name = "AvatarWork_BakedAudit";
+        if (duplicate.scene != auditScene)
+            throw new InvalidOperationException("Clone was created outside the diagnostic scene.");
+
+        using (new nadena.dev.ndmf.OverrideTemporaryDirectoryScope(null))
+        {
+            var platform = nadena.dev.ndmf.platform.PlatformRegistry.GetPrimaryPlatformForAvatar(duplicate);
+            if (platform == null)
+                throw new InvalidOperationException("No NDMF avatar platform resolved.");
+            var context = nadena.dev.ndmf.AvatarProcessor.ProcessAvatar(duplicate, platform);
+            if (!context.Successful)
+                throw new InvalidOperationException("NDMF reported errors. Inspect the build diagnostics.");
+        }
         var armature = duplicate.transform.Find("Armature");
         foreach (var smr in duplicate.GetComponentsInChildren<SkinnedMeshRenderer>(true))
         {
@@ -243,9 +267,12 @@ private static void AuditBaked(GameObject avatarRoot, StringBuilder report)
     }
     finally
     {
-        UnityEngine.Object.DestroyImmediate(duplicate);
-        // On supported NDMF versions, wrap ProcessAvatar in OverrideTemporaryDirectoryScope(null)
-        // so diagnostic bake assets stay transient without wiping unrelated previews.
+        if (previousScene.IsValid() && previousScene.isLoaded &&
+            UnityEngine.SceneManagement.SceneManager.GetActiveScene() != previousScene)
+            UnityEngine.SceneManagement.SceneManager.SetActiveScene(previousScene);
+        if (auditScene.IsValid() && auditScene.isLoaded)
+            EditorSceneManager.CloseScene(auditScene, true);
+        Selection.objects = previousSelection;
     }
 }
 ```

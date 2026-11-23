@@ -27,7 +27,7 @@ Never call `SaveScene`, `SaveAssets`, or mutate objects during a read-only audit
 
 ## Option B: Two-Pass Batch Mode Workflow (When Unity Is Closed)
 
-Use the exact Unity Editor executable matching `ProjectSettings/ProjectVersion.txt`, confirm no other Unity process holds `Temp/UnityLockfile`, place a uniquely named temporary inspector under `Assets/Editor/`, and run Unity twice (pass 1 imports/compiles; pass 2 executes):
+For a read-only request, stage the inspector and run batch mode on a disposable project copy. Unity writes scripts, import metadata and caches to the project it opens. Use the exact Unity Editor executable matching `ProjectSettings/ProjectVersion.txt`, confirm no other Unity process holds `Temp/UnityLockfile`, place a uniquely named temporary inspector under `Assets/Editor/`, and run Unity twice (pass 1 imports/compiles; pass 2 executes):
 
 ```powershell
 $project = 'E:\path\to\project'

@@ -1,4 +1,7 @@
-# VRChat アバター改変 Skills & Unity / Blender MCP ツールキット
+<div align="center">
+  <img src="assets/icon.png" alt="VRChat Avatar Modding Skills" width="128" />
+  <h1>VRChat アバター改変 Skills & Unity / Blender MCP ツールキット</h1>
+</div>
 
 [![Toolkit QA & Tests](https://github.com/asmrawa/vrchat-avatar-modding-skills/actions/workflows/ci.yml/badge.svg)](https://github.com/asmrawa/vrchat-avatar-modding-skills/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -18,7 +21,7 @@
 | --- | --- |
 | **着せ替え・髪型・ワードローブ構築** | Modular Avatar / NDMF を使った非破壊の衣装・髪型導入、`Int` パラメータによる排他着せ替え、共通メッシュの分離（靴と靴下を別トグル化など）、衣装を跨ぐ共通アクセサリのボーン・バインドポーズ再計算、AFK 時の移植ヘア表示修正。 |
 | **Expression Menu・パラメータ・FX 制御** | 独立トグル（`Bool`）、排他選択（`Int`）、連動制御（帽子着用時に耳を隠し脱ぐと復帰するなど）、手持ちアイテム排他、パラメータ名を壊さないメニュー翻訳、1 ページ 8 項目・同期パラメータ 256-bit 上限の自動監査。 |
-| **テクスチャ・PSD 改変（PSD 優先 + Pillow + GPT Image）** | 一致する `.psd` がある場合は作者のレイヤー構造やマスクを統合せずバージョン別コピーで編集（後から Photoshop 等で人間が続けて微調整可能）。PSD が無い場合や新規描き起こしには Pillow によるマスク色調変換・透過デカール合成・余白修復、および GPT Image 部分編集＋マスク合成に対応。 |
+| **テクスチャ・PSD 改変（PSD 優先 + Pillow + GPT Image）** | レイヤー編集には位置が一致する PSD を使用。PNG を直接編集する場合は Pillow で階調や透過文字を処理し、描き起こしには GPT Image とマスク合成を使用します。 |
 | **ギミック・ライティング・軽量化** | 手持ちプロップ・Contact・Constraint の姿勢合わせ、`probeAnchor` やマテリアル受光の統一、重複 PhysBone・パーティクル上限・Mip Streaming・Write Defaults・SDK ビルド/アップロードエラーの切り分け。 |
 | **Blender での衣装シルエット再構築** | 体型変更に合わせて Blender バックグラウンドで衣装メッシュを素体へ投影リビルド（UV・マテリアル・ウェイトを保持）、3 方向平行投影プレビュー生成、承認後の Unity ワンショット取り込み。 |
 | **読み取り専用監査 ＆ 安全修復** | ファイルを一切変更せずにシーン・Prefab オーバーライド・GUID/fileID 参照・Animator カーブ・NDMF ビルド出力を調査し、明示指示時のみ作業領域内で最小限の修復と参照ゼロ資産のクリーンアップを実行。 |
@@ -52,10 +55,10 @@ flowchart LR
 - **同梱 C# ユーティリティ**：[`VrcAvatarIntegration.cs`](skills/vrchat-avatar-modding/scripts/VrcAvatarIntegration.cs) と [`VrcMaterialSwap.cs`](skills/vrchat-avatar-modding/scripts/VrcMaterialSwap.cs) により、クリップ/コントローラー複製、ライティング項目コピー、静止形状を保つバインドポーズ再計算、作業マテリアル限定のテクスチャ差し替えを安全に実行します。
 
 ### 2. テクスチャ・PSD 改変の仕組み（PSD 優先パイプライン）
-テクスチャ編集は [`psd-texture-workflow.md`](skills/vrchat-avatar-modding/references/psd-texture-workflow.md) に統合された一貫パイプラインで進めます：
+[UV 編集ガイド](skills/vrchat-avatar-modding/references/psd-texture-workflow.md)に従い、使用中の画像と納品形式を確認します。
 1. **Unity 上で実際に使われているテクスチャを特定**：対象部位を描画している Renderer、サブメッシュ、マテリアルスロット、シェーダープロパティ（`_MainTex`、`_EmissionMap`、重ね塗り・輪郭線テクスチャ）および FX のマテリアル切り替えを追跡します。
-2. **PSD 優先（対応 `.psd` がある場合）**：現行 PNG と UV ランドマークが一致する `.psd` のバージョン別コピーを作り、独立したレイヤーとマスクで編集します。**作者のフォルダ構成・線画・影を統合せず保持**するため、後から Photoshop 等で自由に再調整できます。
-3. **統合済み PNG 編集 / AI 部分生成（PSD が無い場合、または新規柄を描く場合）**：
+2. **レイヤーを保持する場合**は、現行画像と一致する PSD のコピーを優先し、既存のグループ、マスク、線画、陰影を保持します。
+3. **目的に応じた編集**。PNG を直接編集するときは承認済みの画像を使います。色調変換や透過文字には Pillow、描き起こしには GPT Image を使い、結果を PSD のレイヤーにも配置できます。
    - **色変え・階調マップ**：[`vrc_texture_tool.py`](skills/vrchat-avatar-modding/scripts/vrc_texture_tool.py) の `recolor` で、グレースケールマスク内の明度を新しい影・中間・ハイライトへ変換します。
    - **透過文字・名札デカール**：`vrc_texture_tool.py composite --decal` で元サイズ RGBA レイヤーをアイランドマスク越しに合成します。
    - **新規描き起こし（虹彩・ハイライト・刺繍など）**：[`vrc_gpt_texture_edit.py`](skills/vrchat-avatar-modding/scripts/vrc_gpt_texture_edit.py)（ホスト内蔵画像ツールやプロンプトのみでの ChatGPT 利用にも対応）で 2 種類のマスク（API 誘導マスク＋厳密保護マスク）を使い元図から生成し、PSD の新規マスク付きレイヤーへ貼るか、`clean-bg` 後に `composite` で元 PNG へ無劣化合成します。
@@ -78,13 +81,13 @@ flowchart LR
 | 項目 | 要否 | 用途 |
 | --- | --- | --- |
 | **AI クライアント**（Codex / Antigravity / Cursor 等） | 必須 | 3 つの Skills 読み込みと MCP サーバー接続。 |
-| **Unity Editor + VRChat SDK3 (Avatars)** | 必須 | `ProjectSettings/ProjectVersion.txt` 一致バージョン。Modular Avatar / NDMF / lilToon・Poiyomi / Gesture Manager / Avatar Optimizer 推奨。 |
+| **Unity Editor + VRChat SDK3 (Avatars)** | Unity 作業時に必要 | `ProjectSettings/ProjectVersion.txt` 一致バージョン。Modular Avatar / NDMF / lilToon・Poiyomi / Gesture Manager / Avatar Optimizer 推奨。 |
 | **Node.js >= 18** | Unity MCP に必須 | 同梱 `unity-mcp/unity-mcp-server` の実行（Node.js 24 で検証済み）。 |
 | **Python >= 3.10** | CLI ツールに必須 | オフライン監査・ログ要約・テクスチャツール・衣装スクリプト・`doctor.py` の実行。 |
-| **Pillow（`pip install pillow`）** | テクスチャ編集時に必須 | `vrc_texture_tool.py`（`recolor` / `composite` / `clean-bg` / `compare`）に必要。 |
+| **Pillow（`pip install pillow`）** | Pillow ツール使用時のみ | `vrc_texture_tool.py`（`recolor` / `composite` / `clean-bg` / `compare`）に必要。 |
 | **Photoshop 等 PSD エディタ（または `psd-tools`）** | PSD 編集時に推奨 | レイヤー保持状態での `.psd` 編集と書き出し。 |
 | **OpenAI 互換 Images API キー** | 任意（API 直接生成時） | `vrc_gpt_texture_edit.py` で直接 API を叩く場合のみ環境変数で指定。ホスト画像ツールやプロンプト運用では不要。 |
-| **Blender + `uv`（`uvx`）** | 任意（メッシュ・衣装） | Blender MCP や `vrchat-clothing-rebuild` を使う場合のみ必要。 |
+| **Blender + `uv`（`uvx`）** | 任意（メッシュ・衣装） | 衣装リビルドは Blender 単体で実行できます。uvx は同梱の MCP サーバー用です。 |
 
 リポジトリルートで以下のコマンドを実行すると、不足ツールと導入手順を一覧チェックできます：
 
@@ -110,6 +113,7 @@ vrchat-avatar-modding-skills/
 │   └── vrchat-clothing-rebuild/          # Blender リビルドパイプライン + Unity 反映器 + ヘッドレス起動器
 ├── unity-mcp/                            # 同梱 AnkleBreaker Unity MCP プラグイン (2.32.0) ＆ サーバー (2.30.0)
 ├── blender-mcp/                          # 同梱 MCP for Blender (2.3.1 wheel ＆ アドオン)
+├── assets/                               # プロジェクトアイコン
 ├── config/                               # MCP 設定サンプル（Codex TOML / 汎用 JSON）
 ├── templates/                            # 複数セッション引き継ぎテンプレート（汎用版）
 ├── scripts/                              # 環境診断 doctor.py・QA 検証・ZIP パッケージ生成スクリプト
@@ -124,7 +128,7 @@ vrchat-avatar-modding-skills/
 
 ## クイックスタート
 
-本リポジトリを固定フォルダ（例：`C:/Tools/vrchat-avatar-modding-skills`）へクローンするか、[GitHub Releases](https://github.com/asmrawa/vrchat-avatar-modding-skills/releases) から個別 Skill ZIP をダウンロードしてください。以下はリポジトリルートから実行します。
+本リポジトリを固定フォルダ（例：`C:/Tools/vrchat-avatar-modding-skills`）へクローンするか、[GitHub Releases](https://github.com/asmrawa/vrchat-avatar-modding-skills/releases) から全スキル同梱の `vrchat-avatar-modding-skills.zip` をダウンロードしてください。以下はリポジトリルートから実行します。
 
 ### ステップ 1：Skills をインストール
 
@@ -188,8 +192,8 @@ chmod +x install.sh
 **2. 衣装の着せ替えとメニュー統合：**
 > `vrchat-avatar-modding` を使ってください。`Assets/VRCWork/` に新しいバージョン別作業シーンを作成し、インポート済みの衣装プレハブを Modular Avatar で統合してください。元の衣装トグルを維持したまま、NDMF ビルド後のボーン結合と 256-bit 上限を検証して結果を報告してください。
 
-**3. テクスチャ編集（PSD 優先）：**
-> `vrchat-avatar-modding`（`psd-texture-workflow.md`）を使ってください。まず Unity 上で実際に描画している Renderer・マテリアルスロット・テクスチャを特定し、一致する `.psd` があればバージョン別コピーのレイヤーとマスクで統合せずに編集してください。PSD が無い場合は `vrc_texture_tool.py` または GPT Image 部分編集＋マスク合成で処理し、画素と色メタデータを検証した上で作業マテリアルに適用してプレビューを見せてください。
+**3. テクスチャ編集：**
+> 使用中のマテリアルと元画像を確認してください。レイヤー納品には編集可能な PSD を使い、今回の PNG 編集では保護範囲の画素、アルファ値、色メタデータを確認して、作業用マテリアルの近接画像を見せてください。
 
 **4. Blender での衣装シルエット再構築：**
 > `vrchat-clothing-rebuild` を使ってください。Blender で素体と衣装のメッシュアイランドを確認し、3 方向プレビュー付きでリビルド設定を作成してください。プレビューを確認してから Unity への取り込みを実行してください。

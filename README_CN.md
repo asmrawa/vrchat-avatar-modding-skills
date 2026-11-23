@@ -1,4 +1,7 @@
-# VRChat 改模 Skills 与 Unity / Blender MCP 工具包
+<div align="center">
+  <img src="assets/icon.png" alt="VRChat Avatar Modding Skills" width="128" />
+  <h1>VRChat 改模 Skills 与 Unity / Blender MCP 工具包</h1>
+</div>
 
 [![Toolkit QA & Tests](https://github.com/asmrawa/vrchat-avatar-modding-skills/actions/workflows/ci.yml/badge.svg)](https://github.com/asmrawa/vrchat-avatar-modding-skills/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -18,7 +21,7 @@
 | --- | --- |
 | **换装、发型与多套衣柜** | 通过 Modular Avatar / NDMF 非破坏式整合衣服与发型；制作多套服装互斥（`Int` 衣柜）；拆分共用蒙皮网格（如把鞋和袜套拆成独立开关）；将帽子/眼镜/发饰做成跨服装共享配件并自动重算蒙皮绑定矩阵；修复换发型后挂机（AFK）消失或错位问题。 |
 | **表情菜单、参数与 FX 开关** | 制作独立开关（`Bool`）、多选互斥（`Int`）、条件联动（如戴帽自动收耳、换回其他套装自动恢复）、手持道具互斥、仅翻译菜单显示文案而不破坏参数名，并自动核验每页 8 项与 256-bit 同步参数上限。 |
-| **画图与贴图编辑（PSD 优先 + Pillow + GPT Image）** | 有 `.psd` 时优先在版本副本上用独立图层和蒙版编辑（保留原作者分层与线稿不压平，方便你自己随时打开 Photoshop 继续改）；没 PSD 时支持用 Pillow 做灰度遮罩色阶换色、透明徽章贴字、UV 边距去噪，或用 GPT Image 局部重绘虹膜/挑染/刺绣后精确合回原图集。 |
+| **画图与贴图编辑（PSD 优先 + Pillow + GPT Image）** | 匹配的 PSD 适合保留分层。直接改 PNG 时可用 Pillow 做局部换色、透明徽章贴字和边距清理；需要新画虹膜、挑染或刺绣时用 GPT Image 局部编辑，再按遮罩合回。 |
 | **道具、受光、微调与性能优化** | 校准手持道具握点、Contact 与约束；统一不同服装材质的受光下限与 `probeAnchor` 探针锚点；审计重复 PhysBone、粒子峰值容量、Mip Streaming、Write Defaults 以及 SDK 本地构建/上传报错。 |
 | **Blender 体型服装贴合重建** | 当角色体型改变、衣服单靠缩放或调骨已经贴不上时，在 Blender 后台自动投影重建躯干曲面并输出三视图预览，确认后一键回灌 Unity，完整保留原 FBX 的 UV、材质与蒙皮权重。 |
 | **只读项目审计与安全修复** | 默认只读不改文件，帮你查清场景、Prefab 覆盖、GUID/fileID 引用链、菜单/FX 动画绑定以及 NDMF 合并后的真实结果；只有在你明确要求时才在隔离工作区执行最小范围修复与无引用文件清理。 |
@@ -52,10 +55,10 @@ flowchart LR
 - **内置 C# 编辑器原语**：[`VrcAvatarIntegration.cs`](skills/vrchat-avatar-modding/scripts/VrcAvatarIntegration.cs) 与 [`VrcMaterialSwap.cs`](skills/vrchat-avatar-modding/scripts/VrcMaterialSwap.cs) 负责安全克隆剪辑与控制器、按属性白名单对齐材质受光、保持世界静止几何不变的骨骼重绑定，以及限定在工作目录内的材质贴图切换。
 
 ### 2. 改贴图 / 画图具体是怎么跑通的？
-所有贴图修改统一遵循 [`psd-texture-workflow.md`](skills/vrchat-avatar-modding/references/psd-texture-workflow.md) 的 **PSD 优先、PNG 兜底** 流程：
+按[贴图操作指南](skills/vrchat-avatar-modding/references/psd-texture-workflow.md)核对底图，再根据交付物选择编辑方式。
 1. **先在 Unity 定位真实生效的贴图**：找到实际渲染该部位的 Renderer、子网格、材质槽、Shader 贴图属性（如 `_MainTex`、`_EmissionMap`、叠加层、描边贴图），以及 FX 动画里是否对该槽位做了材质切换。
-2. **有匹配 PSD → 优先改 PSD 副本**：核对 PSD 合成图与当前贴图 UV 对齐后，在版本化 PSD 副本上新增独立图层和蒙版（通过 Photoshop 或非破坏式 Python 流程），**保留原作者所有分组、剪贴蒙版、混合模式、线稿和阴影不压平**，改完导出 PNG，同时保留可继续手动精修的 PSD。
-3. **无 PSD（只有扁平 PNG），或需要 AI 绘制全新图案**：
+2. **需要可继续编辑的分层文件时**，优先使用与当前底图吻合的 PSD，在版本副本上保留作者的分组、蒙版、线稿和阴影。
+3. **按任务选工具**。直接改 PNG 时从认可的底图开始。色阶或透明文字用 Pillow，新画虹膜、挑染或纹样用 GPT Image；两者的结果也可以放回 PSD 独立图层。
    - **纯换色 / 改色阶**：用 [`vrc_texture_tool.py`](skills/vrchat-avatar-modding/scripts/vrc_texture_tool.py) 的 `recolor`，在灰度遮罩内按原图明度映射新的暗部/中间调/高光，100% 保留原有线条与轮廓。
    - **徽章 / 胸牌加透明文字或图标**：用 `vrc_texture_tool.py composite --decal`，将原尺寸透明 RGBA 图层乘以区域遮罩叠加到底图上，不产生白底方块。
    - **重绘复杂图案（新虹膜/瞳孔、发丝挑染、服装刺绣）**：用 [`vrc_gpt_texture_edit.py`](skills/vrchat-avatar-modding/scripts/vrc_gpt_texture_edit.py)（也支持宿主自带生图工具或纯 Prompt 手动发给 ChatGPT）配合双遮罩（API 引导遮罩 + 像素级保护遮罩）基于原图局部生成；出图后可作为独立蒙版图层贴回 PSD，或经 `clean-bg` 去底噪后用 `composite` 严格锁死遮罩外像素与原图 Alpha 合回原 PNG。
@@ -78,13 +81,13 @@ flowchart LR
 | 组件 | 是否必需 | 用途说明 |
 | --- | --- | --- |
 | **AI 客户端**（Codex / Antigravity / Cursor 等） | 必需 | 加载 3 个改模 Skills 并挂载 MCP 服务。 |
-| **Unity Editor + VRChat SDK3 (Avatars)** | 必需 | 与工程 `ProjectSettings/ProjectVersion.txt` 匹配的 Unity 版本；推荐搭配 Modular Avatar、NDMF、lilToon / Poiyomi、Gesture Manager、Avatar Optimizer。 |
+| **Unity Editor + VRChat SDK3 (Avatars)** | Unity 工程操作需要 | 与工程 `ProjectSettings/ProjectVersion.txt` 匹配的 Unity 版本；推荐搭配 Modular Avatar、NDMF、lilToon / Poiyomi、Gesture Manager、Avatar Optimizer。 |
 | **Node.js >= 18** | 用 Unity MCP 必需 | 运行内置的 `unity-mcp/unity-mcp-server` 桥接服务（已在 Node.js 24 验证）。 |
 | **Python >= 3.10** | 用 CLI 工具必需 | 运行离线审计、日志摘要、贴图处理、服装脚本与 `doctor.py`。 |
-| **Pillow（`pip install pillow`）** | 改贴图时必需 | `vrc_texture_tool.py` 依赖它进行遮罩换色、透明合成、去底噪与像素/ICC 校验。 |
+| **Pillow（`pip install pillow`）** | 使用 Pillow 工具时需要 | `vrc_texture_tool.py` 依赖它进行遮罩换色、透明合成、去底噪与像素/ICC 校验。 |
 | **Photoshop / PSD 编辑器（或 `psd-tools`）** | 改 PSD 时推荐 | 用于直接编辑保留分层的 `.psd` 源文件并导出 PNG。 |
 | **OpenAI 兼容 Images API Key** | 选配（仅 API 直出） | 仅在使用 `vrc_gpt_texture_edit.py` 直连 API 时通过环境变量提供；用宿主自带生图或纯 Prompt 模式不需要。 |
-| **Blender + `uv`（`uvx`）** | 选配（改网格/衣服） | 仅在使用 Blender MCP 或 `vrchat-clothing-rebuild` 时需要。 |
+| **Blender + `uv`（`uvx`）** | 选配（改网格/衣服） | Blender 可直接运行服装重建脚本；使用随包提供的 MCP 服务端才需要 uvx。 |
 
 可以随时在仓库根目录运行一键环境体检，看看本机缺什么以及对应的安装命令：
 
@@ -110,6 +113,7 @@ vrchat-avatar-modding-skills/
 │   └── vrchat-clothing-rebuild/          # Blender 重建脚本 + Unity 回灌器 + 无头 MCP 启动器
 ├── unity-mcp/                            # 内置 AnkleBreaker Unity MCP 插件 (2.32.0) 与服务端 (2.30.0)
 ├── blender-mcp/                          # 内置 MCP for Blender (2.3.1 wheel 与插件脚本)
+├── assets/                               # 项目图标
 ├── config/                               # MCP 配置示例（Codex TOML、通用 JSON）
 ├── templates/                            # 通用跨会话改模交接模板（已脱敏）
 ├── scripts/                              # 环境体检 doctor.py、QA 校验 validate_toolkit.py、打包脚本
@@ -124,7 +128,7 @@ vrchat-avatar-modding-skills/
 
 ## 快速安装与连接
 
-先将本仓库克隆到固定目录（例如 `C:/Tools/vrchat-avatar-modding-skills`），或从 [GitHub Releases](https://github.com/asmrawa/vrchat-avatar-modding-skills/releases) 单独下载各 Skill 的 ZIP 包。以下命令均在仓库根目录执行。
+先将本仓库克隆到固定目录（例如 `C:/Tools/vrchat-avatar-modding-skills`），或从 [GitHub Releases](https://github.com/asmrawa/vrchat-avatar-modding-skills/releases) 直接下载包含全部 Skills 与安装脚本的整合包 `vrchat-avatar-modding-skills.zip`。以下命令均在仓库根目录执行。
 
 ### 第 1 步：安装 Skills
 
@@ -188,8 +192,8 @@ chmod +x install.sh
 **2. 换装并接入衣柜菜单：**
 > 使用 `vrchat-avatar-modding`。先在 `Assets/VRCWork/` 下另存独立版本工作场景，用 Modular Avatar 整合刚导入的服装预制体并保留原衣开关，验证 NDMF 合并后的骨骼绑定与 256-bit 参数预算，最后汇报改动路径与已验证范围。
 
-**3. 修改眼睛 / 头发 / 衣服贴图（PSD 优先）：**
-> 使用 `vrchat-avatar-modding`（读取 `psd-texture-workflow.md`）。先在 Unity 里查清当前生效的 Renderer、材质槽和贴图；如果有对应的 `.psd`，在版本副本上用独立图层和蒙版修改且不要压平图层；没有 PSD 再走 `vrc_texture_tool.py` 或 GPT Image 局部编辑与遮罩合成，跑完像素与色彩元数据校验后挂到工作材质给我看近景。
+**3. 修改眼睛 / 头发 / 衣服贴图：**
+> 使用 `vrchat-avatar-modding`。先查清实际显示的材质和底图。需要分层交付时保留可编辑 PSD。这次直接改 PNG，请验证遮罩外像素、Alpha 和色彩信息，再用工作材质给我看近景。
 
 **4. 在 Blender 重建贴身服装：**
 > 使用 `vrchat-clothing-rebuild`。在 Blender 检查角色素体和服装网格岛，配置躯干贴合重建并输出三视图预览，等我确认预览图无误后再导回 Unity 工作场景。

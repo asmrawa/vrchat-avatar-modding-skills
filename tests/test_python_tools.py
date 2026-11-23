@@ -256,6 +256,27 @@ class TestTexturePostprocess(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertIn("chromaticity, gamma, srgb", result.stdout)
 
+    def test_written_variants_keep_source_color_signals(self):
+        from PIL.PngImagePlugin import PngInfo
+
+        tags = PngInfo()
+        tags.add(b"sRGB", b"\x00")
+        tags.add(b"gAMA", (45455).to_bytes(4, "big"))
+        tags.add(b"cHRM", bytes.fromhex("00007a26000080840000fa00000080e8000075300000ea6000003a9800001770"))
+        for source_settings in (dict(pnginfo=tags), dict(icc_profile=b"source profile")):
+            self.original.save(self.src, **source_settings)
+            for command, args in (
+                ("composite", (self.src, self.edit, self.mask, self.out)),
+                ("clean-bg", (self.src, self.edit, self.out)),
+                ("recolor", (self.src, self.mask, self.out, "--shadow", "#102030", "--highlight", "#FFFFFF")),
+            ):
+                with self.subTest(command=command, tags=list(source_settings)):
+                    res = self.cli(command, *args)
+                    self.assertEqual(res.returncode, 0, res.stderr)
+                    res = self.cli("compare", self.src, self.out, "--check-color-metadata")
+                    self.assertEqual(res.returncode, 0, res.stdout)
+                    self.out.unlink()
+
     def test_color_metadata_gate_requires_png_and_accepts_untagged_pairs(self):
         self.original.save(self.edit)
         self.assertEqual(self.cli("compare", self.src, self.edit, "--check-color-metadata").returncode, 0)
@@ -415,6 +436,22 @@ class TestClothingInstallUnity(unittest.TestCase):
             self.assertIn('class VrcClothingRebuildOneShot', preview)
             self.assertIn('"My__Avatar"', preview)
             self.assertIn('"Avatar__Shirt"', preview)
+
+            (proj / "Assets/Vendor/Baseline.asset").write_text("mesh", encoding="utf-8")
+            config["unity"].pop("fbx")
+            config["unity"].update(
+                mesh_asset="Assets/Vendor/Baseline.asset",
+                mesh_name="Fitted Baseline",
+                renderer_path="Outfit/Inner/Visible",
+            )
+            cfg_path.write_text(json.dumps(config), encoding="utf-8")
+            res = run_script(REBUILD_SCRIPTS / "install_unity.py", "--config", str(cfg_path))
+            self.assertEqual(res.returncode, 0, msg=res.stderr)
+            preview = (out / "importer_preview.cs").read_text(encoding="utf-8-sig")
+            self.assertIn('SourceMeshPath = "Assets/Vendor/Baseline.asset"', preview)
+            self.assertIn('SourceMeshName = "Fitted Baseline"', preview)
+            self.assertIn('RendererPath = "Outfit/Inner/Visible"', preview)
+            self.assertIn("activeSceneChangedInEditMode += OnActiveSceneChanged", preview)
 
 
 class TestDoctor(unittest.TestCase):

@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.3.0] - 2026-11-23
+
+### Added
+- **Project Icon & Unified Release Bundle**:
+  - Added transparent custom project emblem (`assets/icon.png`) to the repository and trilingual READMEs.
+  - Updated `scripts/package_skills.py` to build a single all-in-one Skills bundle (`dist/vrchat-avatar-modding-skills.zip`, with optional `--per-skill` mode).
+- **Reproducible Validation Workflows & Observations (`skills/vrchat-avatar-modding/references/validation-workflows-and-results.md`)**:
+  - Documented sanitized editor-verified workflows for masked iris recoloring, online hair previews with native-resolution color transfer, transparent decals/background cleanup, NDMF diagnostic clone isolation in disposable additive scenes, and full clothing persistence/wardrobe pose checks.
+- **Clothing Rebuild Flexibility (`skills/vrchat-clothing-rebuild/`)**:
+  - Added `mesh_asset`, `mesh_name`, and `renderer_path` options to `install_unity.py` and `config-reference.md` for nested renderers and previously fitted `.asset` meshes while preventing `work_mesh` from overwriting `mesh_asset`.
+  - Updated `fit_clothing.py` to transform the evaluated body into garment-local coordinates and frame previews around the fitted region.
+  - Updated `UnityClothingRebuildOneShot.cs.in` to preserve the work mesh asset identity on explicit replacement and skip already-completed staged imports.
+
+### Fixed
+- `vrc_texture_tool.py`: Added `save_work_png()` to preserve source PNG color tags (`icc_profile`, `sRGB`, `gAMA`, `cHRM`) across `recolor`, `composite`, and `clean-bg`.
+- `unity-editor-automation.md` & `unity-editor-inspection.md`: Isolated NDMF diagnostic clones inside disposable additive scenes and restored previous scene and selection state cleanly.
+- Hair recolor safety: Enforced preserving approved strand artwork, highlight bands, and lighting response, verified via matched Unity renders.
+
 ## [1.2.0] - 2026-11-22
 
 ### Added

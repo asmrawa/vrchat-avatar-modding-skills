@@ -5,7 +5,7 @@ import bpy
 import json
 import sys
 from pathlib import Path
-from mathutils import Vector
+from mathutils import Matrix, Vector
 from mathutils.bvhtree import BVHTree
 from mathutils.kdtree import KDTree
 
@@ -91,7 +91,8 @@ def main():
     evaluated = body.evaluated_get(deps)
     body_mesh = evaluated.to_mesh()
     try:
-        body_tree = BVHTree.FromPolygons([vertex.co.copy() for vertex in body_mesh.vertices],
+        body_to_garment = garment.matrix_world.inverted() @ evaluated.matrix_world
+        body_tree = BVHTree.FromPolygons([body_to_garment @ vertex.co for vertex in body_mesh.vertices],
                                          [list(face.vertices) for face in body_mesh.polygons])
     finally:
         evaluated.to_mesh_clear()
@@ -176,26 +177,28 @@ def main():
         if obj.type == 'MESH':
             obj.hide_render = obj.name not in keep
     scene = bpy.context.scene
-    created_camera = None
-    camera = scene.camera
-    if camera is None:
-        cam_data = bpy.data.cameras.new('VrcPreviewCamera')
-        cam_data.type = 'ORTHO'
-        created_camera = bpy.data.objects.new('VrcPreviewCamera', cam_data)
-        scene.collection.objects.link(created_camera)
-        scene.camera = created_camera
-        camera = created_camera
-    camera.data.type = 'ORTHO'
-    target = Vector((0, 0, (fit['y_start'] + fit['y_end']) / 2))
-    for label, location in [('front', (0, -1, target.z)),
-                            ('side', (1, -.08, target.z)),
-                            ('quarter', (.7, -.7, target.z))]:
-        camera.location = location
-        camera.rotation_euler = (target - camera.location).to_track_quat('-Z', 'Y').to_euler()
+    previous_camera = scene.camera
+    cam_data = bpy.data.cameras.new('VrcPreviewCamera')
+    cam_data.type = 'ORTHO'
+    camera = bpy.data.objects.new('VrcPreviewCamera', cam_data)
+    scene.collection.objects.link(camera)
+    scene.camera = camera
+    target = Vector((0, (fit['y_start'] + fit['y_end']) / 2, fit['origin_z']))
+    basis = garment.matrix_world.to_3x3()
+    up = (basis @ Vector((0, 1, 0))).normalized()
+    for label, offset in [('front', (0, 0, 1)), ('side', (1, 0, 0)), ('quarter', (.7, 0, .7))]:
+        back = (basis @ Vector(offset)).normalized()
+        right = up.cross(back).normalized()
+        rotation = Matrix((right, back.cross(right), back)).transposed()
+        camera.location = garment.matrix_world @ target + back
+        camera.rotation_euler = rotation.to_euler()
         camera.data.ortho_scale = float(config.get('preview_scale', .5))
         scene.render.filepath = str(out / f'after_{label}.png')
         bpy.ops.render.render(write_still=True)
 
+    scene.camera = previous_camera
+    bpy.data.objects.remove(camera, do_unlink=True)
+    bpy.data.cameras.remove(cam_data)
     blend_path = out / 'fitted.blend'
     bpy.ops.wm.save_as_mainfile(filepath=str(blend_path))
     report = {

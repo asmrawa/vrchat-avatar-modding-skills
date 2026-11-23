@@ -4,9 +4,11 @@ import argparse
 from pathlib import Path
 import re
 import sys
+import struct
 
 try:
     from PIL import Image, ImageChops, ImageOps
+    from PIL.PngImagePlugin import PngInfo
 except ImportError:
     raise SystemExit("Pillow is required. Install it in your Python environment before running this tool.")
 
@@ -39,6 +41,21 @@ def png_color_metadata(path: Path) -> dict:
         image.load()
         return {key: image.info[key] for key in ("icc_profile", "srgb", "gamma", "chromaticity")
                 if key in image.info}
+
+
+def save_work_png(result, original, output):
+    # All selected RGB values must already be in the source color space.
+    tags = PngInfo()
+    info = original.info
+    if "srgb" in info:
+        tags.add(b"sRGB", bytes([info["srgb"]]))
+    if "gamma" in info:
+        tags.add(b"gAMA", struct.pack(">I", round(info["gamma"] * 100000)))
+    if "chromaticity" in info:
+        tags.add(b"cHRM", struct.pack(">8I", *(round(v * 100000) for v in info["chromaticity"])))
+    result.info.clear()
+    with output.open("xb") as stream:
+        result.save(stream, format="PNG", pnginfo=tags, icc_profile=info.get("icc_profile"))
 
 
 def compare(reference: Image.Image, candidate: Image.Image, mask: Image.Image | None,
@@ -177,8 +194,7 @@ def main() -> int:
                 edited = ImageOps.colorize(ImageOps.grayscale(original), args.shadow, args.highlight, args.midtone)
             result = Image.composite(edited, source_rgb, mask)
         result.putalpha(original.getchannel("A"))
-        with args.output.open("xb") as stream:
-            result.save(stream, format="PNG")
+        save_work_png(result, original, args.output)
         return compare(original, load(args.output, "RGBA"), mask)
     except (OSError, ValueError) as error:
         print(f"Texture check failed: {error}", file=sys.stderr)

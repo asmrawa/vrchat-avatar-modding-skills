@@ -20,7 +20,8 @@ Load only the references relevant to the user's request before editing:
 | Replacement hair/parts disappearing or floating during AFK or actions | [references/afk-and-replacement-parts.md](references/afk-and-replacement-parts.md) |
 | Hand props, grip alignment, contacts, constraints, multi-gimmick coexistence | [references/props-and-gimmicks.md](references/props-and-gimmicks.md) |
 | Local fit, precise coordinate offsets, lighting/probe mismatch, offscreen checks | [references/fit-lighting-and-validation.md](references/fit-lighting-and-validation.md) |
-| PSD-first layered texture editing, Pillow masked recolor/decals, GPT Image UV atlas generation, and Unity material acceptance | [references/psd-texture-workflow.md](references/psd-texture-workflow.md) |
+| Registered PSD or assigned PNG, layered texture editing, Pillow masked recolor/decals, GPT Image UV atlas generation, and Unity material acceptance | [references/psd-texture-workflow.md](references/psd-texture-workflow.md) |
+| Reproducible texture, online preview, clone isolation, FX, NDMF, and garment checks with recorded results | [references/validation-workflows-and-results.md](references/validation-workflows-and-results.md) |
 | SDK height warnings vs build pose leakage, AAO/BlendShapes, particles, mipmaps, WD | [references/avatar-height-and-performance.md](references/avatar-height-and-performance.md) |
 | Work versions, checkpoints, `SaveAssetIfDirty`, NDMF re-entrancy guard, backups | [references/versioned-work-and-rollback.md](references/versioned-work-and-rollback.md) |
 | Independent Blueprint IDs, SDK build/upload triage, thumbnails, offline CLI tools | [references/publishing-and-offline-tools.md](references/publishing-and-offline-tools.md) |
@@ -50,6 +51,7 @@ Follow this loop unless the user only requested read-only research or review (us
 ## Core Safety Rules
 
 - **Use the matching layered source**: For texture edits, trace the active renderer slot through relevant states and verify the PSD against its current export. Keep a versioned PSD copy and use editable layers and masks for local changes.
+- **Preserve hair gloss and art direction**: Treat a hair color or streak request as color-only unless the user asks to repaint the artwork. Retain the approved strand texture, outline, highlight position and shape, and shader lighting response. Compare matched Unity renders before accepting the edit.
 - **Work from verified facts**: Never infer toggle polarity, bone bindings, or shader properties from names alone; read animation curves, FX conditions, bone weights, and resolved components.
 - **Keep vendor assets intact**: Never edit or delete original vendor prefabs, FBX files, textures, controllers, or packages unless explicitly instructed.
 - **Adapted vs. unadapted clothing**: Treat a clothing package as adapted only when its target avatar, armature, and proportions actually match. Do not silently shrink or delete the body when the user asked to fit the garment. For major torso/silhouette rebuilds, switch to `vrchat-clothing-rebuild`.
