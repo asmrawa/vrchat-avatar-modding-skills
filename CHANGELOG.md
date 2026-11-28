@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- Documented field-verified Unity fitting, toggle, and validation guidance across `vrchat-avatar-modding` and `vrchat-project-audit-and-repair`: versioned mesh asset creation over `EditorUtility.CopySerialized`, directional sector trims and source-FBX detail checks, inactive `Untagged` Modular Avatar `layerPriority` overrides, PhysBone-disable coupling on zero-scaled bones, AAO `Bool -> Float` BlendTree testing, `forceMatrixRecalculationPerRender` offscreen capture hygiene, VRChat-faithful 2-layer `PlayableGraph` testing, and posing-system (KawaiiPose / Locomotion) triage.
 - Document local ZIP packaging in the three quick-start guides.
 - Restored the standard root MIT license and kept upstream attribution in the third-party notices and the adapted Skill's license.
 - Removed the bundled Unity and Blender MCP implementations. The Skills installers copy the three Skills, and the ZIP includes example configs for separately installed MCP tools.

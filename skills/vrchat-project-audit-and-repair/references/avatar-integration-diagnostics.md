@@ -33,6 +33,7 @@ Use this reference to route from an observed VRChat avatar symptom to its true r
 - Separate garment dimensions, body-coverage rules, skin weights/bind poses, and secondary-motion limits.
 - Respect body-preservation requests—do not silently shrink/mask the body when asked to fit the garment. Remove both mesh/shape rules and activating FX/MA rules if a body-shrink attempt is rejected.
 - Verify region selection, measured clearance, preserved UVs/weights, and multi-pose renders (arm down, forward, raised, bent).
+- Rule out native garment details (e.g., rear coat double-vents or `Submesh[1]` decorative rivets at vent apexes) via source FBX submesh material inspection before assuming symmetric spots are clipping; for isolated rear/side layer pokes, prefer an azimuth- and height-gated sector trim over global radial inflation.
 
 ## Correct Export, Stale Texture Or Glow In Unity
 
@@ -51,6 +52,18 @@ Use this reference to route from an observed VRChat avatar symptom to its true r
 
 - Inspect both the renderer **and** its weighted bones/helpers for dependencies on a disabled outfit root. Reparenting only the renderer is insufficient.
 - Capture old bone world matrices before moving anything, recompute cloned work-mesh bind poses (`inverse(newBoneWorld) * oldBoneWorld * oldBindPose`), compare pre/post world `BakeMesh` vertices, and verify motion across outfit states.
+
+## Bone-Scale Accessory Toggle Works In Source FX But Fails Or Reverts In VRChat
+
+- Check **all** `ModularAvatarMergeAnimator` components with `GetComponentsInChildren(true)`—inactive (`activeSelf = false`) `Untagged` add-ons (not tagged `EditorOnly`) still merge at build time and can override lower-priority wardrobe controllers via higher `layerPriority` or conflicting parameter defaults.
+- When zero-scaling a parent bone (e.g., hiding an ear when an accessory/hat turns on) whose child bone is a `VRCPhysBone` `rootTransform` (`isAnimated = true`), verify the hidden clip also sets `VRCPhysBone.m_Enabled = 0` (and `1` when restored), and check for stale `ClothingSet != N` conditions left over from removed outfits.
+- If AAO `mmdWorldCompatibility = True` converts built states to `Write Defaults = ON`, verify the bone's Edit-Mode rest scale is its natural `(1, 1, 1)` rather than `0`, or the visible state will snap back to `0`.
+- In automated Play-Mode checks, remember AAO often converts 2-state `Bool` layers into `Float`-driven BlendTrees (`AAO BlendTree MergedLayer`), and same-frame `cam.Render()` can display stale skin matrices unless `smr.forceMatrixRecalculationPerRender = true`.
+
+## Posing System (KawaiiPose / Locomotion) Poses Disappear After Outfit Edit
+
+- Check `activeSelf` / `tag` on the pose-system GameObject (e.g., the KawaiiPose / posing-system root) first—accidental deactivation removes both its Locomotion animator merge and its menu entries while leaving outfit FX toggles working.
+- Verify the built `Base` playable layer (Locomotion layer count), reachable pose submenus (e.g., `More -> <Pose Menu>`), and baked `VRCExpressionParameters` synced bit budget (`<= 256`).
 
 ## Evidence Quality
 
